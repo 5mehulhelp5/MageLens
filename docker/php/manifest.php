@@ -22,7 +22,8 @@ function applicationIdentity(): array
     foreach (project()['roots'] as $source) $sources = array_merge($sources, applicationFiles("$root/$source"));
     sort($sources, SORT_STRING);
     $scope = array_values(array_filter($sources,
-        static fn(string $file): bool => (bool) preg_match('/\.(php|phtml)$/', $file)));
+        static fn(string $file): bool => (bool) preg_match('/\.(php|phtml)$/', $file)
+            && !preg_match('~/(?:Test|Setup)/~', $file)));
     $digest = static fn(array $files): string => hash('sha256', json_encode(pcov_manifest_source_inventory($files), JSON_THROW_ON_ERROR));
     return [
         'scope' => pcov_manifest_source_inventory($scope),

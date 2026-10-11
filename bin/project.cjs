@@ -31,10 +31,11 @@ function specPatterns() {
     return ['cypress/e2e/**/*.cy.js', ...discover().modules.map(module => `src/${module.root}/Test/Cypress/**/*.cy.js`)];
 }
 
-function isCypressJavaScript(file) {
+function isCoverageExcluded(file) {
     const normalized = file.replaceAll('\\', '/');
-    return normalized.endsWith('.js') && (normalized.endsWith('.cy.js')
-        || /(?:^|\/)(?:Test\/Cypress|cypress)\//.test(normalized));
+    return /(?:^|\/)(?:Test|Setup)\//.test(normalized)
+        || normalized.endsWith('.js') && (normalized.endsWith('.cy.js')
+        || /(?:^|\/)cypress\//.test(normalized));
 }
 
 function withThemeRoots(project, themeRoots, source = 'src') {
@@ -63,7 +64,7 @@ function writeRuntime(project, mountRoots = project.roots) {
     // Keep PHP's startup filter stable. Each request exports only the selected
     // files, so changing themes does not require restarting PHP-FPM.
     const allowed = mountRoots.map(root => escape(`/var/www/html/${root}/`)).join('|') || '(?!)';
-    writeChanged('.runtime/coverage.ini', `pcov.directory=/var/www/html/app\npcov.exclude="~^(?!(?:${allowed}))~"\n`);
+    writeChanged('.runtime/coverage.ini', `pcov.directory=/var/www/html/app\npcov.exclude="~^(?!(?:${allowed}))|/(?:Test|Setup)/~"\n`);
     const mount = (source, target) => ({type: 'bind', source, target, read_only: true});
     const sources = mountRoots.map(root => mount(`./.runtime/${root}`, `/var/www/html/${root}`));
     // Magento publishes static assets as symlinks in developer mode. Nginx must
@@ -94,4 +95,4 @@ function nginxConfig(template, environment = process.env) {
     return ports.reduce((config, [key, value]) => config.replaceAll(`__${key}__`, String(Number(value))), template);
 }
 
-module.exports = {discover, files, writeRuntime, writeChanged, nginxConfig, specPatterns, withThemeRoots, isCypressJavaScript};
+module.exports = {discover, files, writeRuntime, writeChanged, nginxConfig, specPatterns, withThemeRoots, isCoverageExcluded};

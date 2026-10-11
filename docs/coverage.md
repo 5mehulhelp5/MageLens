@@ -9,7 +9,7 @@ Coverage includes supported files in:
 - `src/app/code/`
 - The selected frontend and Admin themes under `src/app/design/`, including their local parent themes.
 
-PHP and `.phtml` files appear in the PHP report, application `.js` files in the JavaScript report, and `.html` files in the template report. Cypress specs (`*.cy.js`) and JavaScript in `Test/Cypress/` or `cypress/` directories are excluded from instrumentation and JavaScript reports. Unexecuted application files remain uncovered, including PHP setup and test helpers that run only through CLI. Unrelated inactive themes and Composer packages under `src/vendor/` are excluded. Each run resolves the configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
+PHP and `.phtml` files appear in the PHP report, application `.js` files in the JavaScript report, and `.html` files in the template report. Directories named `Test` or `Setup` are excluded from collection, instrumentation, and all coverage reports. Cypress specs (`*.cy.js`) and JavaScript in `cypress/` directories are also excluded from instrumentation and JavaScript reports. Unexecuted application files within this scope remain uncovered. Unrelated inactive themes and Composer packages under `src/vendor/` are excluded. Each run resolves the configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
 
 Coverage runs use disposable source copies and verify that your originals remain unchanged. Symlinked source files and directories are unsupported.
 

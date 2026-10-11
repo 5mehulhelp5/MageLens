@@ -2,9 +2,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {createHash, randomBytes} = require('node:crypto');
 const {setBadgeSection} = require('./badges.cjs');
-const {discover, files, writeRuntime, writeChanged, nginxConfig, withThemeRoots, isCypressJavaScript} = require('./project.cjs');
+const {discover, files, writeRuntime, writeChanged, nginxConfig, withThemeRoots, isCoverageExcluded} = require('./project.cjs');
 const digest = value => createHash('sha256').update(value).digest('hex');
-const browserFile = file => /\.(js|html)$/.test(file) && !isCypressJavaScript(file);
+const browserFile = file => /\.(js|html)$/.test(file) && !isCoverageExcluded(file);
 
 function applicationFiles(roots = discover().roots) {
     return roots.flatMap(root => files(`src/${root}`));
@@ -60,6 +60,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
         const {createInstrumenter} = require('istanbul-lib-instrument');
         const {createManifest, instrument} = require('@vitaliiboiko/magento-template-coverage');
         const manifest = createManifest({source: 'src', roots: project.roots});
+        manifest.templates = manifest.templates.filter(entry => !isCoverageExcluded(entry.path));
         instrument({source: 'src', manifest, mappings: Object.fromEntries(project.roots.map(root => [root, `.runtime/${root}`]))});
         fs.writeFileSync('.runtime/template-manifest.json', JSON.stringify(manifest, null, 2));
         const baseline = {};

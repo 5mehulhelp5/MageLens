@@ -1,6 +1,6 @@
 {
   "name": "magelens",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "private": true,
   "description": "Quickly bootstrap Magento with PHP, JavaScript, and HTML template code coverage",
   "scripts": {
@@ -23,7 +23,8 @@
     ],
     "exclude": [
       "**/*.cy.js",
-      "**/Test/Cypress/**",
+      "**/Test/**",
+      "**/Setup/**",
       "**/cypress/**"
     ],
     "report-dir": "coverage/js",

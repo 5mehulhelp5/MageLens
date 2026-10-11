@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.13 — 2026-10-11
+
+- PHP, JavaScript, and HTML template coverage now excludes directories named `Test` or `Setup` from report totals.
+
+When updating from v1.0.12, replace the project files and run `./bin/run-coverage` directly; rerunning the installer is unnecessary. The next run refreshes the coverage scope and browser instrumentation automatically.
+
 ## 1.0.12 — 2026-10-09
 
 - Updated Magento template coverage to 1.1.1 so instrumented Underscore and Magento literal templates render safely while the execution collector is unavailable.

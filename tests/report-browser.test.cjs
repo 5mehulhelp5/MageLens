@@ -33,7 +33,7 @@ function coverage(file) {
     return instrumenter.lastFileCoverage();
 }
 
-test('real JavaScript reports omit stale Cypress records and retain unvisited application files', t => {
+test('real JavaScript reports omit stale Test, Setup, and Cypress records and retain unvisited application files', t => {
     const {base} = fixture(t);
     const context = {window: {}};
     vm.runInNewContext(fs.readFileSync(`.runtime/${base}/view/frontend/web/js/loaded.js`, 'utf8'), context);
@@ -43,7 +43,11 @@ test('real JavaScript reports omit stale Cypress records and retain unvisited ap
         `src/${base}/Test/Cypress/support.js`,
         `src/${base}/Test/Cypress/helpers/navigation.js`,
         `src/${base}/Test/example.cy.js`,
+        `src/${base}/Test/Unit/example.js`,
+        `src/${base}/Setup/Patch/example.js`,
         `src/${base}/cypress/support/commands.js`,
+        'src/app/design/frontend/Acme/shop/Test/example.js',
+        'src/app/design/adminhtml/Acme/admin/Setup/example.js',
         'cypress/e2e/example.cy.js'
     ];
     for (const file of tests) {

@@ -3,8 +3,21 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const {discover, specPatterns, writeRuntime, withThemeRoots} = require('../bin/project.cjs');
+const {discover, specPatterns, writeRuntime, withThemeRoots, isCoverageExcluded} = require('../bin/project.cjs');
 const {sourceHashes} = require('../bin/prepare.cjs');
+
+test('coverage exclusions match whole directory names across file types and path separators', () => {
+    for (const file of ['Test/fixture.php', 'Setup/Patch/Data/Example.php',
+        'app/code/Acme/Blog/Test/Unit/example.js', 'app/code/Acme/Blog/Setup/example.html',
+        'app/design/frontend/Acme/shop/Test/example.phtml', 'app/design/adminhtml/Acme/admin/Setup/example.js',
+        'C:\\project\\src\\app\\code\\Acme\\Blog\\Test\\fixture.php']) {
+        assert.equal(isCoverageExcluded(file), true, file);
+    }
+    for (const file of ['app/code/Acme/Blog/Test.php', 'app/code/Acme/Blog/Setup.php',
+        'app/code/Acme/Blog/TestHelper/example.js', 'app/code/Acme/Blog/SetupTools/example.html']) {
+        assert.equal(isCoverageExcluded(file), false, file);
+    }
+});
 
 function workspace(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'magelens-project-'));

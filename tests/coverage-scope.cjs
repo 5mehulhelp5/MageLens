@@ -22,13 +22,14 @@ if (process.argv[2] === 'browser') {
     }
     assert.ok(!Object.keys(js).some(file => file.includes('/vendor/')));
     assert.ok(!Object.keys(js).some(file => file.includes('/inactive/')));
-    assert.ok(!Object.keys(js).some(file => file.endsWith('.cy.js') || file.includes('/Test/Cypress/')));
+    assert.ok(!Object.keys(js).some(file => file.endsWith('.cy.js') || /\/(Test|Setup)\//.test(file)));
     const templates = JSON.parse(fs.readFileSync('coverage/templates/coverage-summary.json')).templates;
     assert.ok(templates.some(file => file.path === 'app/code/Magento/Local/view/frontend/web/template/example.html'));
     assert.ok(templates.some(file => file.path === 'app/design/frontend/Magento/local/web/template/example.html'));
     assert.ok(!templates.some(file => file.path.includes('vendor/')));
     assert.ok(!templates.some(file => file.path.includes('/inactive/')));
-    console.log('PASS: application JavaScript and unvisited templates reach browser reports; Cypress code is excluded.');
+    assert.ok(!templates.some(file => /\/(Test|Setup)\//.test(file.path)));
+    console.log('PASS: application JavaScript and unvisited templates reach browser reports; Test, Setup, and Cypress code is excluded.');
     process.exit(0);
 }
 
@@ -42,16 +43,23 @@ try {
     const config = JSON.parse(execFileSync('bash', ['bin/application-compose', 'config', '--format', 'json'], {cwd: root, encoding: 'utf8'}));
     for (const file of ['bin', 'package.json', 'package-lock.json', 'README.md']) fs.cpSync(`${root}/${file}`, `${scratch}/${file}`, {recursive: true});
     for (const file of ['app/code/root.php', 'app/code/Magento/Local/registration.php',
+        'app/code/Magento/Local/Setup.php', 'app/code/Magento/Local/Test.php',
         'app/code/Magento/Local/Setup/Upgrade.php', 'app/code/Magento/Local/Test/Example.php',
+        'app/code/Magento/Local/Test/fixtures/example.phtml',
+        'app/design/frontend/Magento/local/Test/example.php', 'app/design/frontend/Magento/local/Setup/example.phtml',
         'app/design/frontend/Magento/local/templates/example.phtml', 'app/design/frontend/Magento/inactive/templates/example.phtml',
         'vendor/magento/example/vendor.php']) {
         put(`src/${file}`, '<?php $scopeExample = 42;\n');
     }
     for (const file of ['app/code/root.js', 'app/code/Magento/Local/Test/example.cy.js',
         'app/code/Magento/Local/Test/Cypress/support.js',
+        'app/code/Magento/Local/Test/Unit/example.js', 'app/code/Magento/Local/Setup/example.js',
+        'app/design/frontend/Magento/local/Test/example.js', 'app/design/frontend/Magento/local/Setup/example.js',
         'app/code/Magento/Local/view/frontend/requirejs-config.js', 'app/design/frontend/Magento/local/web/js/theme.js',
         'app/design/frontend/Magento/inactive/web/js/theme.js', 'vendor/magento/example/vendor.js']) put(`src/${file}`, 'var config = {example: true};\n');
     for (const file of ['app/code/Magento/Local/view/frontend/web/template/example.html',
+        'app/code/Magento/Local/Test/fixtures/example.html', 'app/code/Magento/Local/Setup/example.html',
+        'app/design/frontend/Magento/local/Test/example.html', 'app/design/frontend/Magento/local/Setup/example.html',
         'app/design/frontend/Magento/local/web/template/example.html', 'app/design/frontend/Magento/inactive/web/template/example.html',
         'vendor/magento/example/vendor.html']) {
         put(`src/${file}`, '<span data-bind="text: label">Example</span>\n');
