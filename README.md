@@ -19,12 +19,12 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.0.14.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.1.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
 
-Choose a storefront and browser runner when installing from this checkout:
+The command above installs Luma with Cypress. For another combination, append the corresponding flags to its `./install.sh` command:
 
 | Installer command | Storefront | Browser runner |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Each installation includes only its selected runner, browser download and runner
 
 Hyvä replaces the active storefront theme. Magento's bundled Luma/Blank packages remain part of Magento; the installer does not remove core files. Hyvä is downloaded only for `--hyva`.
 
-The v1.0.14 archive above supports Luma/Cypress. Use this checkout for the Hyvä and Playwright options. All four modes install their coverage dependencies from npm.
+All four modes install their coverage dependencies from npm.
 
 See the [release notes](CHANGELOG.md) for changes in this version.
 

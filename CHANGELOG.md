@@ -1,6 +1,6 @@
 # Release notes
 
-## Unreleased
+## 1.1.0 — 2026-10-17
 
 - Added four exclusive installation modes: Luma/Cypress by default, `--hyva` for Hyvä, `--playwright` for Playwright, or both flags together.
 - Each installation includes only its selected runner, browser cache, and tooling. Playwright installations omit the Cypress desktop viewer.
@@ -10,6 +10,8 @@
 - The bundled Blog supports Hyvä and provides equivalent publishing, moderation, validation, permissions, and storefront scenarios in both browser runners.
 - The installation matrix verifies all seven scenarios in every mode and compares coverage for shared application code.
 - Updated Magento template coverage to 1.2.0 from npm.
+
+When updating from v1.0.14, replace the MageLens project files and rerun `./install.sh` to refresh dependencies and assets, then run `./bin/run-coverage`. The default remains Luma/Cypress. Add `--hyva`, `--playwright`, or both flags to select another combination, and repeat those flags whenever you rerun the installer.
 
 ## 1.0.14 — 2026-10-17
 
