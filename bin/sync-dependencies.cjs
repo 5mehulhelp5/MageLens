@@ -9,7 +9,11 @@ const {execFileSync} = require('node:child_process');
 function syncDependencies(root, env = process.env, execute = execFileSync) {
     const requested = {
         cypress: env.CYPRESS_VERSION,
-        '@vitaliiboiko/magento-template-coverage': env.TEMPLATE_COVERAGE_VERSION
+        '@vitaliiboiko/magento-template-coverage': env.TEMPLATE_COVERAGE_VERSION,
+        '@cypress/code-coverage': env.CYPRESS_CODE_COVERAGE_VERSION,
+        'istanbul-lib-coverage': env.ISTANBUL_LIB_COVERAGE_VERSION,
+        'istanbul-lib-instrument': env.ISTANBUL_LIB_INSTRUMENT_VERSION,
+        nyc: env.NYC_VERSION
     };
     for (const [name, version] of Object.entries(requested)) {
         if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$/.test(version || '')) {

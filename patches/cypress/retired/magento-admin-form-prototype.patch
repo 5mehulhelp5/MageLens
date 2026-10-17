@@ -1,10 +1,11 @@
-Subject: Keep Admin change tracking on inputs with a different DOM prototype chain
+Subject: Retired Admin change-tracking workaround (revert only)
 Target: Magento 2.4.8-p5 lib/web/mage/adminhtml/form.js
 
 Under Cypress, Admin inputs can belong to a different prototype chain from the
 one extended by Prototype. Call the same change-tracking implementation directly
 and use Prototype's static class helper. No validation or error is suppressed.
-Applied only during Cypress and reverted during cleanup.
+Superseded by magento-template-coverage 1.1.2. Retained only to restore files
+left patched by an interrupted run of an older MageLens release.
 
 --- a/lib/web/mage/adminhtml/form.js
 +++ b/lib/web/mage/adminhtml/form.js

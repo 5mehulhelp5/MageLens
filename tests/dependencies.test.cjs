@@ -8,8 +8,29 @@ const {syncDependencies} = require('../bin/sync-dependencies.cjs');
 const root = path.resolve(__dirname, '..');
 const yaml = fs.readFileSync(path.join(root, 'dependencies.yaml'), 'utf8');
 const configured = key => yaml.match(new RegExp(`^${key}: \"([^\"]+)\"`, 'm'))[1];
+const browserVersions = {
+    CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.2.0',
+    CYPRESS_CODE_COVERAGE_VERSION: '4.1.0', ISTANBUL_LIB_COVERAGE_VERSION: '3.2.3',
+    ISTANBUL_LIB_INSTRUMENT_VERSION: '6.0.4', NYC_VERSION: '18.0.1'
+};
+const browserPackages = {
+    CYPRESS_VERSION: 'cypress', TEMPLATE_COVERAGE_VERSION: '@vitaliiboiko/magento-template-coverage',
+    CYPRESS_CODE_COVERAGE_VERSION: '@cypress/code-coverage', ISTANBUL_LIB_COVERAGE_VERSION: 'istanbul-lib-coverage',
+    ISTANBUL_LIB_INSTRUMENT_VERSION: 'istanbul-lib-instrument', NYC_VERSION: 'nyc'
+};
 const select = (content, values) => Object.entries(values).reduce((text, [key, value]) =>
     text.replace(new RegExp(`^${key}:.*$`, 'm'), `${key}: \"${value}\"`), content);
+
+test('committed browser dependencies and locks match the central version settings', () => {
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
+    const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json')));
+    assert.deepEqual(Object.keys(manifest.devDependencies).sort(), Object.values(browserPackages).sort());
+    for (const [key, name] of Object.entries(browserPackages)) {
+        assert.equal(manifest.devDependencies[name], configured(key), name);
+        assert.equal(lock.packages[''].devDependencies[name], configured(key), name);
+        assert.equal(lock.packages[`node_modules/${name}`].version, configured(key), name);
+    }
+});
 
 function workspace(t) {
     const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'magelens-test-'));
@@ -39,6 +60,10 @@ test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t 
         yaml + 'TYPO_VERSION: "1.2.3"\n',
         select(yaml, {MAGENTO_VERSION: '$(touch /tmp/magelens-must-not-execute)'}),
         select(yaml, {CYPRESS_VERSION: 'latest'}),
+        ...Object.keys(browserVersions).flatMap(key => [
+            yaml.replace(new RegExp(`^${key}:.*\\n`, 'm'), ''),
+            select(yaml, {[key]: '^1.0.0'})
+        ]),
         yaml.replace(/^CYPRESS_VERSION:.*$/m, 'CYPRESS_VERSION: 16.1.0')
     ]) {
         fs.writeFileSync(file, content);
@@ -49,7 +74,7 @@ test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t 
 });
 
 function manifests(directory, version = '1.0.0') {
-    const dependencies = {cypress: version, '@vitaliiboiko/magento-template-coverage': version, unrelated: '3.0.0'};
+    const dependencies = {...Object.fromEntries(Object.values(browserPackages).map(name => [name, version])), unrelated: '3.0.0'};
     fs.writeFileSync(path.join(directory, 'package.json'), JSON.stringify({name: 'fixture', devDependencies: dependencies, nyc: {include: ['keep']}}));
     fs.writeFileSync(path.join(directory, 'package-lock.json'), JSON.stringify({lockfileVersion: 3, packages: {
         '': {devDependencies: dependencies},
@@ -71,11 +96,10 @@ test('changing browser versions updates both manifests before npm ci, without ch
         for (const [name, version] of Object.entries(manifest.devDependencies)) lock.packages[`node_modules/${name}`] = {version};
         fs.writeFileSync(path.join(options.cwd, 'package-lock.json'), JSON.stringify(lock));
     };
-    const selected = {CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.2.0'};
+    const selected = browserVersions;
     assert.equal(syncDependencies(directory, selected, resolve), true);
     const result = JSON.parse(fs.readFileSync(path.join(directory, 'package.json')));
-    assert.equal(result.devDependencies.cypress, '16.2.0');
-    assert.equal(result.devDependencies['@vitaliiboiko/magento-template-coverage'], '1.2.0');
+    for (const [key, name] of Object.entries(browserPackages)) assert.equal(result.devDependencies[name], selected[key]);
     assert.equal(result.devDependencies.unrelated, '3.0.0');
     assert.deepEqual(result.nyc, {include: ['keep']});
     assert.equal(syncDependencies(directory, selected, resolve), false);
@@ -88,19 +112,20 @@ test('failed dependency resolution preserves the working manifest and lock', t =
     const files = ['package.json', 'package-lock.json'];
     const original = files.map(file => fs.readFileSync(path.join(directory, file), 'utf8'));
     assert.throws(() => syncDependencies(directory,
-        {CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.2.0'},
+        browserVersions,
         () => { throw new Error('Registry unavailable'); }), /Registry unavailable/);
     assert.deepEqual(files.map(file => fs.readFileSync(path.join(directory, file), 'utf8')), original);
 });
 
-test('installer uses changed YAML versions and the runner image throughout its workflow', t => {
+for (const containerOnly of [false, true]) {
+test(`installer uses configured versions with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
     const directory = workspace(t);
     for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/expose-tools', 'bin/application-domain']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(directory, file));
     }
     fs.writeFileSync(path.join(directory, 'dependencies.yaml'), select(yaml, {MARKSHUST_DOCKER_MAGENTO_VERSION: '54.0.0', MAGENTO_VERSION: '2.4.9',
-        PCOV_VERSION: '2.2.0', CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.2.0',
+        PCOV_VERSION: '2.2.0', ...browserVersions,
         RUNNER_IMAGE: 'cypress/base:24.16.0'}));
     for (const child of ['bin', 'lib', 'env']) fs.mkdirSync(path.join(directory, '.runtime/docker-magento/compose', child), {recursive: true});
     fs.writeFileSync(path.join(directory, '.runtime/docker-magento/compose/bin/status'), '#!/bin/sh\n');
@@ -118,6 +143,7 @@ const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({command: require('node:path').basename(process.argv[1]), args,
     magento: process.env.MAGENTO_VERSION, pcov: process.env.PCOV_VERSION,
     cypress: process.env.CYPRESS_VERSION, templates: process.env.TEMPLATE_COVERAGE_VERSION,
+    browserVersions: Object.fromEntries(${JSON.stringify(Object.keys(browserVersions))}.map(key => [key, process.env[key]])),
     php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
 if (args.includes('version')) console.log('2.24.4');
 if (args.includes('--images')) console.log('markoshust/magento-php:8.5-fpm-1');
@@ -125,13 +151,16 @@ if (args.includes('--print')) console.log('https://shop.magelens.test/');
 if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:6080/');
 `;
     for (const command of ['docker', 'git', 'sudo']) fs.writeFileSync(path.join(commands, command), script, {mode: 0o755});
-    execFileSync('bash', ['install.sh', 'shop.magelens.test'], {cwd: directory, env: {...process.env, PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
+    execFileSync('bash', ['install.sh', ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
+        {cwd: directory, env: {...process.env, PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
     const calls = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
     assert.ok(calls.some(call => call.command === 'git' && call.args.includes('refs/tags/54.0.0')));
     const sync = calls.find(call => call.args.includes('bin/sync-dependencies.cjs'));
     assert.ok(sync.args.includes('cypress/base:24.16.0'));
     assert.equal(sync.cypress, '16.2.0');
     assert.equal(sync.templates, '1.2.0');
+    assert.deepEqual(sync.browserVersions, browserVersions);
+    for (const key of Object.keys(browserVersions)) assert.ok(sync.args.includes(key), `Container must receive ${key}`);
     const build = calls.find(call => call.args.includes('build'));
     assert.equal(build.magento, '2.4.9');
     assert.equal(build.pcov, '2.2.0');
@@ -155,12 +184,24 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     assert.ok(calls.indexOf(auth) < calls.indexOf(download));
     assert.ok(calls.indexOf(download) < calls.indexOf(expose), 'Source must be downloaded before changing the installation');
     const domain = calls.find(call => call.args.includes('upstream-domain'));
-    assert.deepEqual(domain.args, ['upstream-domain', 'shop.magelens.test']);
-    assert.ok(calls.indexOf(domain) > calls.indexOf(expose));
+    const certificate = calls.find(call => call.args.some(arg => arg.includes('openssl req')));
+    if (containerOnly) {
+        assert.equal(domain, undefined);
+        assert.ok(!calls.some(call => call.command === 'sudo'));
+        assert.ok(certificate?.args.includes('shop.magelens.test'));
+        const webStart = calls.find(call => call.args.includes('up') && call.args.at(-1) === 'app');
+        assert.ok(calls.indexOf(certificate) > calls.indexOf(expose));
+        assert.ok(calls.indexOf(certificate) < calls.indexOf(webStart), 'HTTPS must exist before nginx starts');
+    } else {
+        assert.deepEqual(domain.args, ['upstream-domain', 'shop.magelens.test']);
+        assert.ok(calls.indexOf(domain) > calls.indexOf(expose));
+        assert.equal(certificate, undefined);
+    }
     assert.match(fs.readFileSync(path.join(directory, '.env'), 'utf8'), /^APPLICATION_DOMAIN=shop\.magelens\.test$/m);
     assert.ok(calls.some(call => call.args.includes('exec') && call.args.includes('runner') && call.args.includes('verify')));
     assert.ok(fs.existsSync(path.join(directory, '.runtime/installed')));
 });
+}
 
 test('Compose inherits service images and PHP from the selected Mark Shust configuration', t => {
     if (spawnSync('docker', ['compose', 'version'], {stdio: 'ignore'}).status !== 0) return t.skip('Docker Compose CLI unavailable');

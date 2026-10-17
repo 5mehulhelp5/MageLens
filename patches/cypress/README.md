@@ -1,11 +1,14 @@
 # Cypress-only Magento patches
 
-The bundled blog demo temporarily applies two compatibility fixes while Cypress runs:
+The bundled blog demo temporarily applies one compatibility fix while Cypress runs:
 
 - [Session handling](magento-framework-session-cookie-race-41057.patch) prevents intermittent session loss during login and form submissions. See [Magento issue #41057](https://github.com/magento/magento2/issues/41057).
-- [Admin forms](magento-admin-form-prototype.patch) keeps change tracking working when Cypress fills Magento Admin inputs.
 
-These patches target **Magento 2.4.8-p5**. They are applied and reverted automatically, including after failed tests. No manual setup is needed. If a patch does not match your installed Magento version, the run stops; review compatibility before retrying.
+The session patch targets **Magento 2.4.8-p5**. It is applied and reverted automatically, including after failed tests. No manual setup is needed. If a patch does not match your installed Magento version, the run stops; review compatibility before retrying.
+
+Template coverage **1.1.2** fixes DOM observation in the application window, preserving Magento Admin's Prototype extensions. The former [Admin form workaround](retired/magento-admin-form-prototype.patch) is now retired and is never applied. Before applying or reverting active patches, the script restores it if an older interrupted run left it applied. Conflicting local edits stop recovery for review.
+
+After updating from an older release, rerun `./install.sh` to install the new collector and refresh published assets, then run `./bin/run-coverage`.
 
 `./bin/run-coverage` applies the patches before its automatic storefront homepage warm-up, after instrumentation and fixture preparation. Coverage starts afterward in a fresh browser with the existing test timeouts. A warm-up failure also reverts the patches. See [the run lifecycle](../../docs/coverage.md#run-lifecycle) for limits and diagnostics.
 

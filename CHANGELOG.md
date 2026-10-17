@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.0.14 — 2026-10-17
+
+- Updated Cypress to 16.2.0, the Node 24 runner image to 24.22.0, PIE to 1.5.2, and PHP code coverage to 11.0.12.
+- Updated Magento template coverage to 1.1.2, preserving Prototype DOM extensions on Admin pages. Retired the Admin form patch while retaining automatic recovery for interrupted older runs.
+- Centralized the Cypress coverage adapter, Istanbul libraries, and nyc versions in `dependencies.yaml`, alongside the existing browser dependencies.
+- Added `npm run test:e2e` for a clean temporary Magento install, real Cypress execution, and validation of all generated coverage reports, using container-only HTTPS.
+
+When updating from v1.0.13, replace the project files and rerun `./install.sh` to install the updated dependencies and refresh published assets, then run `./bin/run-coverage`.
+
 ## 1.0.13 — 2026-10-11
 
 - PHP, JavaScript, and HTML template coverage now excludes directories named `Test` or `Setup` from report totals.

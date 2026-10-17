@@ -1,0 +1,29 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const {createHash} = require('node:crypto');
+const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+for (const [name, version] of Object.entries(read('package.json').devDependencies)) {
+    assert.equal(read(`node_modules/${name}/package.json`).version, version, `Installed version differs: ${name}`);
+}
+const run = read('coverage/run.json');
+const tests = read('coverage/cypress-results.json');
+const summary = read('coverage/summary.json');
+assert.equal(tests.run, run.id);
+assert.equal(summary.run, run.id);
+assert.ok(tests.totalTests > 0);
+assert.equal(tests.totalPassed, tests.totalTests);
+for (const key of ['totalFailed', 'totalPending', 'totalSkipped']) assert.equal(tests[key], 0);
+for (const file of ['coverage/index.html', ...['php', 'js', 'templates'].map(type => `coverage/${type}/index.html`)]) {
+    assert.match(fs.readFileSync(file, 'utf8'), /<html/i, `Missing HTML report: ${file}`);
+}
+for (const file of ['coverage/.active-run', '.runtime/hooks-active', '.runtime/workflow.lock', 'src/var/blog-coverage-fixtures.json']) {
+    assert.equal(fs.existsSync(file), false, `Run cleanup left ${file}`);
+}
+// Composer's source inventory predates test patches. Check that the run restored
+// both the active session workaround and the retired Admin form target exactly.
+const inventory = read('src/.magelens-source.json');
+for (const file of ['vendor/magento/framework/Session/SessionManager.php', 'lib/web/mage/adminhtml/form.js']) {
+    const fingerprint = 'file:' + createHash('sha256').update(fs.readFileSync(`src/${file}`)).digest('hex');
+    assert.equal(fingerprint, inventory.files[file], `Patch cleanup changed ${file}`);
+}
+console.log(`Verified fresh reports for run ${run.id}, ${tests.totalPassed}/${tests.totalTests} tests, and complete cleanup.`);

@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.0.13.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.0.14.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -104,12 +104,17 @@ This is the single place to choose the main dependency versions:
 | Mark Shust Docker Magento, including its PHP and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
+| Cypress JavaScript coverage adapter | `CYPRESS_CODE_COVERAGE_VERSION` |
+| Istanbul coverage data / instrumentation | `ISTANBUL_LIB_COVERAGE_VERSION` / `ISTANBUL_LIB_INSTRUMENT_VERSION` |
+| Istanbul report CLI (nyc) | `NYC_VERSION` |
 | [Magento template coverage](https://github.com/VitaliyBoyko/magento-template-coverage) | `TEMPLATE_COVERAGE_VERSION` |
 | Cypress runner's Node and browser system dependencies | `RUNNER_IMAGE` |
 
 Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your Magento version.
 
-The installer synchronizes Cypress and template coverage versions in `package.json` and `package-lock.json`. Commit those updated files alongside `dependencies.yaml`.
+The installer synchronizes all browser dependencies, including Cypress, Istanbul, nyc, and template coverage, in `package.json` and `package-lock.json`. Commit those updated files alongside `dependencies.yaml`.
+
+From a Git checkout, maintainers can validate a dependency change with `npm run test:e2e`: it installs Magento in a temporary directory, runs the full demo suite, and verifies all three coverage reports. See [test setup and artifacts](https://github.com/VitaliyBoyko/MageLens/blob/main/tests/README.md). `./install.sh --container-only [domain]` supports these container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
 
 For installations created by MageLens, changing `MAGENTO_VERSION` updates Magento while preserving client modules, configuration, media, and the database. Installation stops if an update conflicts with local edits. Back up the database before upgrading; Magento setup can change its schema. Downgrades require a separate checkout and database.
 
