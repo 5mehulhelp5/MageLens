@@ -7,6 +7,8 @@
 - `./bin/run-coverage` uses the saved runner selection and generates PHP, JavaScript, and template reports with either runner.
 - Added execution coverage for regular Hyvä/Alpine directives in PHTML while preserving original PHP source lines.
 - `npm run test:e2e:matrix` checks all four combinations in separate temporary installations, including elgentos Playwright guest fixtures and generated coverage reports.
+- The bundled Blog supports Hyvä and provides equivalent publishing, moderation, validation, permissions, and storefront scenarios in both browser runners.
+- The installation matrix verifies all seven scenarios in every mode and compares coverage for shared application code.
 - Updated Magento template coverage to 1.2.0 from npm.
 
 ## 1.0.14 — 2026-10-17

@@ -16,7 +16,7 @@ test('Playwright report distinguishes failed, skipped and unexecuted tests from 
     const states = ['passed', 'failed', 'timedOut', 'interrupted', 'skipped', null];
     const reporter = new Reporter();
     reporter.onBegin({}, {allTests: () => states.map((status, index) => ({
-        results: status ? [{status}] : [], location: {file: `spec-${index}.js`}
+        title: `scenario ${index}`, results: status ? [{status}] : [], location: {file: `spec-${index}.js`}
     }))});
     reporter.onEnd({status: 'failed'});
     const result = JSON.parse(fs.readFileSync('coverage/playwright-results.json'));
@@ -27,6 +27,7 @@ test('Playwright report distinguishes failed, skipped and unexecuted tests from 
     assert.equal(result.totalFailed, 3);
     assert.equal(result.totalSkipped, 1);
     assert.equal(result.totalPending, 1);
+    assert.deepEqual(result.tests, states.map((status, index) => ({title: `scenario ${index}`, status: status || 'pending'})));
 });
 
 test('Playwright specs and support code cannot inflate application coverage', () => {

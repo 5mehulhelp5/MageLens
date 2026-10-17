@@ -33,12 +33,12 @@ export function findRecord(name) {
 }
 export function save() {
     get('admin-save').click();
-    cy.get('.message-success').should('contain', 'Saved successfully.');
+    cy.get('.message-success, .message.success').should('contain', 'Saved successfully.');
 }
 export function remove() {
     get('admin-delete').click();
     cy.get('.modal-popup._show .action-accept').click();
-    cy.get('.message-success').should('contain', 'Deleted successfully.');
+    cy.get('.message-success, .message.success').should('contain', 'Deleted successfully.');
 }
 export function search(query, category = '') {
     get('search').clear();

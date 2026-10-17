@@ -10,7 +10,8 @@ class CoverageReporter {
             totalTests: tests.length, totalPassed: count('passed'), totalFailed: count('failed') + count('timedOut') + count('interrupted'),
             totalPending: tests.filter(test => !test.results.length).length,
             totalSkipped: count('skipped'),
-            specs: [...new Set(tests.map(test => test.location.file))].sort()
+            specs: [...new Set(tests.map(test => test.location.file))].sort(),
+            tests: tests.map(test => ({title: test.title, status: test.results.at(-1)?.status || 'pending'}))
         }, null, 2));
     }
 }

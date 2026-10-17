@@ -8,7 +8,7 @@
 
 Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
-The included [blog module](src/app/code/Application/Blog/README.md) provides an optional demonstration application and Cypress suite. The badges are updated after each successful coverage run.
+The included [blog module](src/app/code/Application/Blog/README.md) provides an optional demonstration application with equivalent Cypress and Playwright suites for Luma and Hyvä. The badges are updated after each successful coverage run.
 
 <!-- coverage-badges:start -->
 Run `./bin/run-coverage` to generate coverage reports and badges for your project.
@@ -89,7 +89,7 @@ The installer adds the domain to your hosts file and uses Mark Shust's SSL tools
 
 Open `coverage/index.html` directly in your browser for the combined view. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
 
-Coverage includes PHP/`.phtml`, application JavaScript `.js`, and HTML template files under `src/app/code/`, plus selected storefront and Admin themes and their local parents under `src/app/design/`. Directories named `Test` or `Setup` are excluded from all coverage reports. Cypress specs (`*.cy.js`) and JavaScript in `cypress/` directories are also excluded from the JavaScript report. The theme scope is resolved from Magento on each run; inactive themes and `vendor/` are excluded. Unexecuted application files within this scope remain uncovered.
+Coverage includes PHP/`.phtml`, application JavaScript `.js`, and HTML template files under `src/app/code/`, plus selected storefront and Admin themes and their local parents under `src/app/design/`. Directories named `Test` or `Setup` are excluded from all coverage reports. Cypress and Playwright specs (`*.cy.js`, `*.spec.js`, `*.spec.ts`) and their support directories are also excluded from the JavaScript report. The theme scope is resolved from Magento on each run; inactive themes and `vendor/` are excluded. Unexecuted application files within this scope remain uncovered.
 
 Read the [coverage guide](docs/coverage.md) for report semantics, collection details, and adding tests and fixtures.
 

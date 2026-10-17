@@ -1,16 +1,16 @@
 # MageLens demonstration blog
 
-`Application_Blog` is a sample application for [MageLens](../../../../../README.md). Its PHP controllers, Magento Admin forms, browser JavaScript, and HTML templates provide examples for all three coverage reports.
+`Application_Blog` is a sample application for [MageLens](../../../../../README.md). Its PHP controllers, Magento Admin forms, browser JavaScript, and Knockout/Alpine templates provide examples for all three coverage reports.
 
-Browser scenarios live in `Test/Cypress/`; fixture creation, cleanup, and Cypress patches are managed by `Test/MageLens/hooks.php`. See [Use your project](../../../../../docs/coverage.md#use-your-project) to add your own modules and tests.
+Equivalent browser scenarios live in `Test/Cypress/` and `Test/Playwright/`; fixture creation, cleanup, and Cypress patches are managed by `Test/MageLens/hooks.php`. See [Use your project](../../../../../docs/coverage.md#use-your-project) to add your own modules and tests.
 
 ## Try the demo
 
-Use the default Luma/Cypress installation for the bundled demo scenarios. From the repository root, run `./install.sh`, then `./bin/run-coverage`.
+From the repository root, run `./install.sh`, then `./bin/run-coverage`. Add `--hyva` to select Hyvä, `--playwright` to select Playwright, or both. The Blog features and five acceptance scenarios are the same in all four combinations.
 
 - Storefront: **https://magelens.test/blog/**.
 - Magento Admin: **https://magelens.test/admin/**; local demo credentials are `application` / `ApplicationOnly123456!`.
-- Live Cypress runner: **https://magelens.test:6080/**.
+- Live runner (Cypress installations): **https://magelens.test:6080/**.
 - In Admin, open **Blog → Posts**, **Categories**, or **Comments**.
 - Reports: open `coverage/index.html` from the repository root after the coverage command finishes.
 
@@ -28,9 +28,9 @@ Admin uses Magento's normal login, Blog ACL permission, secret URL keys, and for
 
 Content is shared across this installation's store views, with one category per post. Articles and comments use plain text. This demo is intended for local development.
 
-Installation selects Luma. To use the included demonstration theme, select `Application/coverage` in **Content → Design → Configuration**. The blog's functional tests run with either theme; the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
+Installation selects Luma by default or Hyvä with `--hyva`. The Blog uses Knockout on Luma and Alpine on Hyvä. To use the included Luma demonstration theme, select `Application/coverage` in **Content → Design → Configuration**. Both browser suites support these themes; the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
 
-## What Cypress verifies
+## What the browser suites verify
 
 Five tests exercise storefront discovery, favorites, pagination, publication visibility, Admin creation/editing/deletion, image upload/removal, SEO output, moderated comments, input validation, escaped output, CSRF rejection, and restricted-role authorization. They use real Magento forms and HTTP requests. One test publishes an article in Admin, reads it on the storefront, submits and moderates a comment, and removes its records.
 
@@ -43,8 +43,8 @@ Each run creates uniquely named fixtures and a temporary dashboard-only Admin ac
 | `Model/`, `ViewModel/` | Publishing rules, validation, and data access |
 | `Controller/`, `Block/` | Storefront HTTP requests and Magento Admin actions |
 | `etc/`, `Setup/` | Module configuration, declarative schema, and initial demo articles |
-| `view/frontend/` | PHP page templates, AMD JavaScript, Knockout templates, and an Underscore template |
+| `view/frontend/` | PHP page templates, Knockout/Underscore templates for Luma, and Alpine JavaScript/directives for Hyvä |
 | `view/adminhtml/` | Admin forms, preview JavaScript, and browser templates |
 | [Demo theme](../../../design/frontend/Application/coverage/) | Magento Blank extension, LESS styles, and the `theme-note.html` browser template |
 
-Edit these tracked files under `src/`. Installation copies them into `.runtime/app/` for execution; coverage instruments only the disposable copies and verifies the originals afterward. Rerun `./install.sh` after changes to refresh Magento setup and assets.
+Edit these tracked files under `src/`. Installation copies them into `.runtime/app/` for execution; coverage instruments only the disposable copies and verifies the originals afterward. Rerun `./install.sh` with the same theme/runner flags after changes to refresh Magento setup and assets.

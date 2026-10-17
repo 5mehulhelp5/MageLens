@@ -56,7 +56,7 @@ describe('Blog Admin and publishing', () => {
             cy.get('[name="body"]').type('Thoughtful article. <img src=x onerror=alert(1)>');
         });
         get('comment-submit').click();
-        cy.get('.message-success').should('contain', 'awaiting moderation');
+        cy.get('.message-success, .message.success').should('contain', 'awaiting moderation');
         get('approved-comment').should('not.exist');
         get('comment-form').within(() => {
             cy.get('[name="name"]').type('Another reader');
@@ -64,7 +64,7 @@ describe('Blog Admin and publishing', () => {
             cy.get('[name="body"]').type('Too soon');
         });
         get('comment-submit').click();
-        cy.get('.message-error').should('contain', 'wait a minute');
+        cy.get('.message-error, .message.error').should('contain', 'wait a minute');
         cy.visit('/admin/');
         section('comments');
         findRecord(query + ' Reader');
@@ -85,7 +85,7 @@ describe('Blog Admin and publishing', () => {
         save();
         get('admin-delete').click();
         cy.get('.modal-popup._show .action-accept').click();
-        cy.get('.message-error').should('contain', 'Move or delete');
+        cy.get('.message-error, .message.error').should('contain', 'Move or delete');
         section('comments');
         findRecord(query + ' Reader');
         cy.get('#comment-status').select('rejected');
@@ -116,20 +116,20 @@ describe('Blog Admin and publishing', () => {
         cy.get('#category-name').type(f.query + ' Invalid');
         cy.get('#category-slug').type('Invalid Slug');
         get('admin-save').click();
-        cy.get('.message-error').should('contain', 'lowercase');
+        cy.get('.message-error, .message.error').should('contain', 'lowercase');
         cy.get('#category-name').should('have.value', f.query + ' Invalid');
         cy.get('#category-slug').clear().type(f.prefix + 'engineering');
         get('admin-save').click();
-        cy.get('.message-error').should('contain', 'slug already exists');
+        cy.get('.message-error, .message.error').should('contain', 'slug already exists');
         section('posts');
         get('admin-new').click();
         fillPost(f.query + ' Invalid post', f.prefix + 'article-1', f.query + ' Engineering');
         get('admin-save').click();
-        cy.get('.message-error').should('contain', 'slug already exists');
+        cy.get('.message-error, .message.error').should('contain', 'slug already exists');
         cy.get('#blog-slug').clear().type(f.prefix + 'invalid-post');
         cy.get('#blog-image').selectFile({contents: Cypress.Buffer.from('not an image'), fileName: 'fake.png', mimeType: 'image/png'});
         get('admin-save').click();
-        cy.get('.message-error').should('contain', 'image');
+        cy.get('.message-error, .message.error').should('contain', 'image');
         cy.get('#blog-title').should('have.value', f.query + ' Invalid post');
         get('admin-form').then($form => {
             const body = Object.fromEntries($form.serializeArray().map(field => [field.name, field.value]));

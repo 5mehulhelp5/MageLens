@@ -21,7 +21,8 @@ cypress.run({browser: 'electron', headed: true, ...options}).then(results => {
         totalFailed: results.totalFailed, totalPending: results.totalPending,
         totalSkipped: results.totalSkipped, failures: results.failures,
         status: results.status, message: results.message,
-        specs: results.runs?.map(result => ({path: result.spec.relative, tests: result.tests.length}))
+        specs: results.runs?.map(result => ({path: result.spec.relative, tests: result.tests.length})),
+        tests: results.runs?.flatMap(result => result.tests.map(test => ({title: test.title.at(-1), status: test.state})))
     }, null, 2));
     const actualSpecs = (results.runs || []).map(result => result.spec.relative).sort();
     if (JSON.stringify(actualSpecs) !== JSON.stringify(expectedSpecs) || results.runs?.some(result => !result.tests.length) || results.failures || !(results.totalTests > 0) || results.totalPassed !== results.totalTests || results.totalFailed !== 0 || results.totalPending !== 0 || results.totalSkipped !== 0) {

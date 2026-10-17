@@ -9,7 +9,7 @@ Coverage includes supported files in:
 - `src/app/code/`
 - The selected frontend and Admin themes under `src/app/design/`, including their local parent themes.
 
-PHP and `.phtml` files appear in the PHP report, application `.js` files in the JavaScript report, and `.html` files plus supported Alpine directives in `.phtml` files in the template report. Directories named `Test` or `Setup` are excluded from collection, instrumentation, and all coverage reports. Cypress specs (`*.cy.js`) and JavaScript in `cypress/` directories are also excluded from instrumentation and JavaScript reports. Unexecuted application files within this scope remain uncovered. Unrelated inactive themes and Composer packages under `src/vendor/` are excluded. Each run resolves the configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
+PHP and `.phtml` files appear in the PHP report, application `.js` files in the JavaScript report, and `.html` files plus supported Alpine directives in `.phtml` files in the template report. Directories named `Test` or `Setup` are excluded from collection, instrumentation, and all coverage reports. Cypress and Playwright specs (`*.cy.js`, `*.spec.js`, `*.spec.ts`) and their support directories are also excluded from instrumentation and JavaScript reports. Unexecuted application files within this scope remain uncovered. Unrelated inactive themes and Composer packages under `src/vendor/` are excluded. Each run resolves the configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
 
 Coverage runs use disposable source copies and verify that your originals remain unchanged. Symlinked source files and directories are unsupported.
 
@@ -48,6 +48,8 @@ For Cypress installations, open `https://magelens.test:6080/`, then start `./bin
 
 Use your configured `APPLICATION_DOMAIN` and `CYPRESS_VIEW_PORT` if they differ from the defaults. The viewer starts with the environment; use `--start` if it is stopped.
 
+Both runners fail tests on uncaught application errors. Cypress disables cross-document view-transition animations inside its test frame so navigation between Hyvä and Admin remains reliable. This does not change normal storefront browsing; animation behavior is outside the bundled acceptance checks.
+
 ## PHP coverage
 
 [PCOV](https://github.com/VitaliyBoyko/pcov) collects PHP execution from Magento HTTP requests made during the current browser run. CLI execution is outside the collection scope.
@@ -58,7 +60,7 @@ Every run records fresh execution. Cached collection metadata is refreshed autom
 
 ## JavaScript coverage
 
-`istanbul-lib-instrument` adds execution counters to application `.js` files under the source directories, excluding Cypress specs and support directories. Cypress collects counters through `@cypress/code-coverage`; Playwright collects snapshots from each browser context. Both use nyc to generate reports. Cypress records from older instrumentation are also removed before reporting.
+`istanbul-lib-instrument` adds execution counters to application `.js` files under the source directories, excluding browser specs and support directories. Cypress collects counters through `@cypress/code-coverage`; Playwright collects snapshots from each browser context. Both use nyc to generate reports. Cypress records from older instrumentation are also removed before reporting.
 
 Files that are never loaded retain zero-hit counters from instrumentation. The report combines these with execution observed during the current suite.
 
@@ -88,7 +90,7 @@ Modules can provide optional fixture hooks in `Test/MageLens/hooks.php`:
 | `prepare` | Before browser warm-up and coverage collection | One JSON value on stdout; diagnostics on stderr |
 | `cleanup` | When the run exits; also before preparation if a previous run was interrupted | Optional diagnostic output; safe to repeat |
 
-Cypress receives each module's `prepare` result through `Cypress.expose('projectFixtures')[moduleName]`. The [blog hooks](../src/app/code/Application/Blog/Test/MageLens/hooks.php) provide an example of fixture creation and cleanup.
+Cypress receives each module's `prepare` result through `Cypress.expose('projectFixtures')[moduleName]`. Playwright tests can read the same data from `coverage/project-fixtures.json`. The [blog hooks](../src/app/code/Application/Blog/Test/MageLens/hooks.php) provide an example of fixture creation and cleanup.
 
 ## Reports and artifacts
 

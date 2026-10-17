@@ -8,7 +8,7 @@ const theme = process.argv[2];
 assert.ok(php.requests.some(request => request.method === 'POST' && request.uri.includes('/coverageprobe/index/save')), 'Missing real Magento POST coverage');
 assert.ok(php.covered > 0 && php.covered < php.total, 'PHP needs both covered and uncovered lines');
 assert.ok(js.total.lines.covered > 0 && js.total.lines.covered < js.total.lines.total, 'JavaScript needs both covered and uncovered lines');
-const suffix = theme === 'hyva' ? 'MageLens_Compatibility/templates/probe.phtml' : 'web/template/probe.html';
+const suffix = theme === 'hyva' ? 'templates/probe-hyva.phtml' : 'web/template/probe.html';
 const entry = templates.templates.find(entry => entry.path.endsWith(suffix));
 assert.ok(entry && entry.status === 'observed' && entry.statementSummary.covered > 0, `Missing ${theme} execution: ${suffix}`);
 const never = entry.source.split('\n').findIndex(line => line.includes('data-cy="probe-never"')) + 1;

@@ -76,7 +76,7 @@ cp tests/fixtures/compatibility/*.php "$scratch/docker/php/e2e/"
 # Exercise the bundled demo only; existing Magento data and third-party modules
 # are not fixtures. Composer downloads a clean source tree into this workspace.
 mkdir -p "$scratch/src/app/code" "$scratch/src/app/design/frontend"
-if [[ "$theme" != hyva ]]; then cp -a src/app/code/Application "$scratch/src/app/code/"; fi
+cp -a src/app/code/Application "$scratch/src/app/code/"
 cp -a src/app/design/frontend/Application "$scratch/src/app/design/frontend/"
 mkdir -p "$scratch/src/app/code/MageLens"
 cp -a tests/fixtures/compatibility/module "$scratch/src/app/code/MageLens/Compatibility"
@@ -111,20 +111,15 @@ docker run --rm --user root --entrypoint sh \
         ./bin/application-compose exec -T runner npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @elgentos/magento2-playwright@7.1.0
         ./bin/application-compose exec -T runner node tests/setup-compatibility.cjs
     fi
-    if [[ "$theme" == hyva ]]; then
-        mkdir -p src/app/design/frontend/MageLens
-        cp -a tests/fixtures/compatibility/hyva src/app/design/frontend/MageLens/hyva
-        ./bin/application-compose exec -T runner node bin/prepare.cjs --runtime-only
-        ./bin/application-compose exec -T phpfpm php bin/magento setup:upgrade
-        ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/select-theme.php MageLens/hyva
-    fi
     ./bin/application-compose exec -T phpfpm bash /application/docker/php/refresh-assets.sh
     # The installer selection must drive coverage without an extra runner flag.
     ./bin/run-coverage
-    if [[ "$runner" == cypress && "$theme" != hyva ]]; then ./bin/application-compose exec -T runner node tests/verify-demo.cjs; fi
+    ./bin/application-compose exec -T runner node tests/verify-demo.cjs
+    ./bin/application-compose exec -T runner node tests/verify-scenarios.cjs
     ./bin/application-compose exec -T runner node tests/verify-e2e.cjs
     ./bin/application-compose exec -T runner node tests/verify-compatibility.cjs "$theme"
     mkdir -p "$artifacts/$runner"
     cp -a coverage "$artifacts/$runner/"
+    if [[ -n "${MAGELENS_E2E_RESULT_FILE:-}" ]]; then printf '%s\n' "$artifacts/$runner/coverage" > "$MAGELENS_E2E_RESULT_FILE"; fi
 ) 2>&1 | tee "$artifacts/run.log"
 printf 'PASS: isolated %s installation, %s, and PHP/JavaScript/template coverage.\n' "$theme" "$runner"

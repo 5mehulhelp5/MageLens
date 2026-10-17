@@ -8,6 +8,19 @@ const elgentos = path.resolve('.runtime/elgentos/base-tests/utils/fixtures.utils
 // The optional E2E integration exercises elgentos's real consent/guest fixture.
 const base = fs.existsSync(elgentos) ? require(elgentos).guestTest : playwright.test;
 const test = withTemplateCoverage(base, {outputDir: 'coverage/raw/templates'}).extend({
+    applicationErrors: [async ({context}, use) => {
+        const errors = [];
+        const record = error => errors.push(error.message);
+        const track = page => page.on('pageerror', record);
+        context.on('page', track);
+        for (const page of context.pages()) track(page);
+        try { await use(); }
+        finally {
+            context.off('page', track);
+            for (const page of context.pages()) page.off('pageerror', record);
+            playwright.expect(errors, 'Uncaught application errors').toEqual([]);
+        }
+    }, {auto: true}],
     context: async ({context, baseURL}, use) => {
         const run = JSON.parse(fs.readFileSync('coverage/run.json'));
         await context.addCookies([{name: 'application_coverage', value: run.id,
