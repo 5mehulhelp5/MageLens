@@ -4,7 +4,7 @@ const {createHash, randomBytes} = require('node:crypto');
 const {setBadgeSection} = require('./badges.cjs');
 const {discover, files, writeRuntime, writeChanged, nginxConfig, withThemeRoots, isCoverageExcluded} = require('./project.cjs');
 const digest = value => createHash('sha256').update(value).digest('hex');
-const browserFile = file => /\.(js|html)$/.test(file) && !isCoverageExcluded(file);
+const browserFile = file => /\.(js|html|phtml)$/.test(file) && !isCoverageExcluded(file);
 
 function applicationFiles(roots = discover().roots) {
     return roots.flatMap(root => files(`src/${root}`));
@@ -30,7 +30,9 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     const cache = fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath)) : null;
     const signature = digest(JSON.stringify({roots: project.roots,
         sources: selectedBrowser.map(file => [file, inputs[file]]),
-        tools: [__filename, require.resolve('./project.cjs'), 'package-lock.json'].map(file => digest(fs.readFileSync(file)))}));
+        tools: [__filename, require.resolve('./project.cjs'), 'package-lock.json',
+            ...files(path.dirname(require.resolve('@vitaliiboiko/magento-template-coverage'))).filter(file => file.endsWith('.js'))
+        ].map(file => digest(fs.readFileSync(file)))}));
     const reuse = !plain && cache?.signature === signature
         && fs.existsSync('.runtime/template-manifest.json') && fs.existsSync('.runtime/js-baseline.json')
         && selectedBrowser.every(file => before[file] === cache.outputs[file]);
@@ -83,7 +85,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     for (const name of fs.readdirSync('coverage')) fs.rmSync(`coverage/${name}`, {recursive: true, force: true});
     for (const directory of ['.nyc_output', 'cypress/screenshots', 'cypress/videos']) fs.rmSync(directory, {recursive: true, force: true});
     fs.mkdirSync('coverage/raw/templates', {recursive: true});
-    const run = {id: randomBytes(16).toString('hex'), startedAt: new Date().toISOString(), roots: project.roots,
+    const run = {id: randomBytes(16).toString('hex'), runner: process.env.MAGELENS_RUNNER || 'cypress', startedAt: new Date().toISOString(), roots: project.roots,
         sources: Object.fromEntries(Object.entries(inputs).filter(([file]) => scoped(file)))};
     fs.mkdirSync(`coverage/raw/php/${run.id}`, {recursive: true, mode: 0o777});
     fs.chmodSync(`coverage/raw/php/${run.id}`, 0o777);
@@ -91,7 +93,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     fs.copyFileSync('.runtime/template-manifest.json', 'coverage/template-manifest.json');
     setBadgeSection('Coverage has not completed for the current run.');
     console.log(`Prepared fresh coverage run ${run.id}.`);
-    if (process.env.APPLICATION_DOMAIN) console.log(`Watch Cypress at https://${process.env.APPLICATION_DOMAIN}:${process.env.CYPRESS_VIEW_PORT || 6080}/`);
+    if (run.runner === 'cypress' && process.env.APPLICATION_DOMAIN) console.log(`Watch Cypress at https://${process.env.APPLICATION_DOMAIN}:${process.env.CYPRESS_VIEW_PORT || 6080}/`);
 }
 
 if (require.main === module) {

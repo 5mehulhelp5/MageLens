@@ -1,0 +1,260 @@
+{
+  "type": "package",
+  "package": [
+    {
+      "name": "hyva-themes/magento2-default-theme",
+      "description": "Default Hyvä Theme",
+      "require": {
+        "php": ">=7.3.0",
+        "magento/framework": ">=102.0.0",
+        "hyva-themes/magento2-base-layout-reset": "^2.0.1",
+        "hyva-themes/magento2-theme-module": ">=1.5.3",
+        "hyva-themes/magento2-email-module": "*",
+        "hyva-themes/magento2-order-cancellation-webapi": "^1.0.0"
+      },
+      "type": "magento2-theme",
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "registration.php"
+        ]
+      },
+      "version": "1.5.3",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-default-theme/zip/c74658fdeddfb03255516b1ff3cf77b940b8dede",
+        "reference": "c74658fdeddfb03255516b1ff3cf77b940b8dede"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-theme-module",
+      "description": "Hyva Themes companion module",
+      "type": "magento2-module",
+      "require": {
+        "ext-simplexml": "*",
+        "hyva-themes/magento2-mollie-theme-bundle": "^1.0.1",
+        "magento/framework": "*",
+        "magento/module-catalog": ">=103.0.0",
+        "magento/module-checkout": ">=100.3.0",
+        "magento/module-cms": ">=103.0.0",
+        "magento/module-customer": ">=102.0.0",
+        "magento/module-quote-graph-ql": "*",
+        "magento/module-sample-data": "*",
+        "magento/module-theme": ">=101.0.0",
+        "magento/module-wishlist": ">=101.0.0"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/cli_commands.php",
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\Theme\\": [
+            "src/",
+            "tests/src/"
+          ]
+        }
+      },
+      "version": "1.5.3",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-theme-module/zip/6c922be3cd2e9ff9512447c681f388ca829a9c25",
+        "reference": "6c922be3cd2e9ff9512447c681f388ca829a9c25"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-email-module",
+      "description": "Hyva Themes email module",
+      "type": "magento2-module",
+      "require": {
+        "magento/framework": "*",
+        "magento/module-email": ">=101.0.0"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\Email\\": "src/"
+        }
+      },
+      "version": "1.0.6",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-email-module/zip/aa5dc55e5e66cadf578bdb339a5d76b2a5a94097",
+        "reference": "aa5dc55e5e66cadf578bdb339a5d76b2a5a94097"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-base-layout-reset",
+      "description": "Hyva Themes Magento base layout reset generation",
+      "type": "magento2-module",
+      "require": {
+        "php": ">=7.4.0",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "ext-simplexml": "*",
+        "psr/log": "^1 || ^2 || ^3",
+        "hyva-themes/magento2-theme-module": ">1.3.17",
+        "magento/framework": "*",
+        "magento/module-theme": ">=1.0.2"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\BaseLayoutReset\\": [
+            "src/"
+          ]
+        }
+      },
+      "version": "2.0.5",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-base-layout-reset/zip/f39cf05a0e69c4ece318703c567a91d585ad89f7",
+        "reference": "f39cf05a0e69c4ece318703c567a91d585ad89f7"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-order-cancellation-webapi",
+      "description": "REST API for magento/module-order-cancellation.",
+      "type": "magento2-module",
+      "require": {
+        "magento/framework": "*",
+        "magento/module-webapi": "*",
+        "magento/module-customer": "*",
+        "magento/module-sales": "*"
+      },
+      "suggest": {
+        "magento/module-order-cancellation": "^100.4.0-beta3"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\OrderCancellationWebapi\\": [
+            "src/"
+          ]
+        }
+      },
+      "version": "1.0.1",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-order-cancellation-webapi/zip/e3b2e4d74bc2501c926ce5b8f9ac126f523bd07e",
+        "reference": "e3b2e4d74bc2501c926ce5b8f9ac126f523bd07e"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-mollie-theme-bundle",
+      "description": "Hyva Themes Mollie companion module",
+      "type": "magento2-module",
+      "require": {
+        "mollie/magento2-hyva-compatibility": "^3.0"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\MollieThemeBundle\\": [
+            "src/"
+          ]
+        }
+      },
+      "version": "1.1.0",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-mollie-theme-bundle/zip/cee7ff401bae129b543dbe454b9869dfb580863e",
+        "reference": "cee7ff401bae129b543dbe454b9869dfb580863e"
+      }
+    },
+    {
+      "name": "hyva-themes/magento2-compat-module-fallback",
+      "description": "Allow templates to be overridden by Hyvä Themes compatibility modules without layout XML.",
+      "type": "magento2-module",
+      "require": {
+        "magento/framework": "*",
+        "hyva-themes/magento2-theme-module": "*"
+      },
+      "authors": [
+        {
+          "name": "Hyvä Themes B.V.",
+          "email": "info@hyva.io"
+        }
+      ],
+      "license": [
+        "OSL-3.0"
+      ],
+      "autoload": {
+        "files": [
+          "src/registration.php"
+        ],
+        "psr-4": {
+          "Hyva\\CompatModuleFallback\\": "src/"
+        }
+      },
+      "version": "1.1.4",
+      "dist": {
+        "type": "zip",
+        "url": "https://codeload.github.com/hyva-themes/magento2-compat-module-fallback/zip/a0bf18f998ccf45c53d15c39446a495aa68b4c4a",
+        "reference": "a0bf18f998ccf45c53d15c39446a495aa68b4c4a"
+      }
+    }
+  ]
+}

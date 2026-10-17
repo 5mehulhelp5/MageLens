@@ -27,15 +27,16 @@ function discover(source = 'src') {
     return {roots, modules};
 }
 
-function specPatterns() {
+function specPatterns(runner = 'cypress') {
+    if (runner === 'playwright') return ['playwright/e2e/**/*.spec.{js,ts}', ...discover().modules.map(module => `src/${module.root}/Test/Playwright/**/*.spec.{js,ts}`)];
     return ['cypress/e2e/**/*.cy.js', ...discover().modules.map(module => `src/${module.root}/Test/Cypress/**/*.cy.js`)];
 }
 
 function isCoverageExcluded(file) {
     const normalized = file.replaceAll('\\', '/');
     return /(?:^|\/)(?:Test|Setup)\//.test(normalized)
-        || normalized.endsWith('.js') && (normalized.endsWith('.cy.js')
-        || /(?:^|\/)cypress\//.test(normalized));
+        || /\.[cm]?[jt]s$/.test(normalized) && (/\.(cy|spec)\.[cm]?[jt]s$/.test(normalized)
+        || /(?:^|\/)(cypress|playwright)\//.test(normalized));
 }
 
 function withThemeRoots(project, themeRoots, source = 'src') {
@@ -86,6 +87,7 @@ function writeChanged(file, content) {
 }
 
 function nginxConfig(template, environment = process.env) {
+    if (environment.MAGELENS_RUNNER === 'playwright') template = template.replace(/# cypress-viewer:start[\s\S]*?# cypress-viewer:end\n?/, '');
     const defaults = {APPLICATION_PORT: '80', APPLICATION_HTTPS_PORT: '443', CYPRESS_VIEW_PORT: '6080'};
     const ports = Object.entries(defaults).map(([key, fallback]) => [key, environment[key] || fallback]);
     for (const [key, value] of ports) {

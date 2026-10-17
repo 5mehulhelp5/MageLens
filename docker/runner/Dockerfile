@@ -1,5 +1,19 @@
 ARG RUNNER_IMAGE
-FROM ${RUNNER_IMAGE}
+ARG PLAYWRIGHT_RUNNER_IMAGE
+FROM ${PLAYWRIGHT_RUNNER_IMAGE} AS playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+WORKDIR /workspace
+COPY package.json package-lock.json ./
+COPY .runtime/template-package/ .runtime/
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+    && npx --no-install playwright install --with-deps chromium \
+    && chmod -R a+rX /opt/playwright
+ENV PATH=/workspace/node_modules/.bin:$PATH
+HEALTHCHECK --interval=3s --timeout=3s --retries=20 \
+    CMD node -e "const fs=require('fs');if(!fs.existsSync(require('@playwright/test').chromium.executablePath()))process.exit(1)"
+CMD ["node", "-e", "setInterval(() => {}, 3600000)"]
+
+FROM ${RUNNER_IMAGE} AS cypress
 RUN apt-get update \
     && apt-get install -y --no-install-recommends xvfb x11vnc novnc websockify openbox x11-utils x11-xserver-utils \
     && rm -rf /var/lib/apt/lists/*
@@ -8,6 +22,7 @@ ENV CYPRESS_CACHE_FOLDER=/opt/cypress
 ENV DISPLAY=:99
 WORKDIR /workspace
 COPY package.json package-lock.json ./
+COPY .runtime/template-package/ .runtime/
 RUN npm ci --no-audit --no-fund && chmod -R a+rwX /opt/cypress
 ENV PATH=/workspace/node_modules/.bin:$PATH
 COPY docker/runner/desktop.sh /opt/magelens/desktop.sh

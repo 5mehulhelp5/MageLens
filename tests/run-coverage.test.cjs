@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
 
-function workflow(t, args = [], failure = '', interrupted = false) {
+function workflow(t, args = [], failure = '', interrupted = false, runner = 'cypress') {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'magelens-workflow-'));
     t.after(() => fs.rmSync(directory, {recursive: true, force: true}));
     for (const name of ['bin', '.runtime', 'coverage']) fs.mkdirSync(path.join(directory, name));
@@ -15,6 +15,7 @@ function workflow(t, args = [], failure = '', interrupted = false) {
     fs.writeFileSync(path.join(directory, 'bin/common'), `
 set -euo pipefail
 ROOT=$PWD
+MAGELENS_RUNNER=${runner}
 preflight() { :; }
 say() { :; }
 fail() { echo "$*" >&2; exit 1; }
@@ -92,4 +93,22 @@ test('help and invalid options do not touch the environment', t => {
     const result = workflow(t, ['--unknown']);
     assert.equal(result.status, 1);
     assert.equal(result.calls, '');
+});
+
+
+test('coverage uses the installed Playwright runner without a command-line override', t => {
+    const result = workflow(t, [], '', false, 'playwright');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.calls, /run-playwright.cjs --warmup/);
+    assert.match(result.calls, /runner node bin\/run-playwright.cjs\n/);
+    assert.doesNotMatch(result.calls, /run-browser.cjs/);
+});
+
+test('coverage refuses an uninstalled runner before touching services or collection', t => {
+    for (const [installed, requested] of [['cypress', 'playwright'], ['playwright', 'cypress']]) {
+        const result = workflow(t, ['--runner=' + requested], '', false, installed);
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /not installed/);
+        assert.equal(result.calls, '');
+    }
 });

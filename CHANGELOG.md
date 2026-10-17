@@ -1,5 +1,14 @@
 # Release notes
 
+## Unreleased
+
+- Added four exclusive installation modes: Luma/Cypress by default, `--hyva` for Hyvä, `--playwright` for Playwright, or both flags together.
+- Each installation includes only its selected runner, browser cache, and tooling. Playwright installations omit the Cypress desktop viewer.
+- `./bin/run-coverage` uses the saved runner selection and generates PHP, JavaScript, and template reports with either runner.
+- Added execution coverage for regular Hyvä/Alpine directives in PHTML while preserving original PHP source lines.
+- `npm run test:e2e:matrix` checks all four combinations in separate temporary installations, including elgentos Playwright guest fixtures and generated coverage reports.
+- Updated Magento template coverage to 1.2.0 from npm.
+
 ## 1.0.14 — 2026-10-17
 
 - Updated Cypress to 16.2.0, the Node 24 runner image to 24.22.0, PIE to 1.5.2, and PHP code coverage to 11.0.12.

@@ -7,6 +7,7 @@ function escapeHtml(value) {
 }
 
 function writeIndex({run, generatedAt, metrics, php, js, templates, tests}) {
+    const runner = run.runner === 'playwright' ? 'Playwright' : 'Cypress';
     const reports = [
         {key: 'php', covered: php.covered, total: php.total, unit: 'lines',
             description: 'PHP and .phtml executed by Magento HTTP requests.'},
@@ -62,9 +63,9 @@ code { overflow-wrap: anywhere; }
 </head>
 <body>
 <main>
-<span class="status">Cypress passed · ${tests.totalPassed}/${tests.totalTests} tests</span>
+<span class="status">${runner} passed · ${tests.totalPassed}/${tests.totalTests} tests</span>
 <h1>MageLens coverage report</h1>
-<p class="intro">PHP, JavaScript and browser-template coverage from the same Cypress run. Open a report to inspect individual files.</p>
+<p class="intro">PHP, JavaScript and browser-template coverage from the same ${runner} run. Open a report to inspect individual files.</p>
 <div class="reports">
 <table>
 <caption>Coverage overview</caption>

@@ -4,9 +4,9 @@
 
 # MageLens
 
-**Quickly bootstrap Magento with code coverage.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and HTML template coverage from a single Cypress run.
+**Quickly bootstrap Magento with code coverage.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and HTML template coverage from a Cypress or Playwright run.
 
-Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, Cypress, and the reporting tools run in containers.
+Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
 The included [blog module](src/app/code/Application/Blog/README.md) provides an optional demonstration application and Cypress suite. The badges are updated after each successful coverage run.
 
@@ -24,6 +24,21 @@ wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.0.14.tar
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
 
+Choose a storefront and browser runner when installing from this checkout:
+
+| Installer command | Storefront | Browser runner |
+| --- | --- | --- |
+| `./install.sh` | Luma | Cypress |
+| `./install.sh --hyva` | Hyvä | Cypress |
+| `./install.sh --playwright` | Luma | Playwright |
+| `./install.sh --hyva --playwright` | Hyvä | Playwright |
+
+Each installation includes only its selected runner, browser download and runner tooling. Playwright installs have no Cypress desktop/viewer. The installer saves the selection; `./bin/run-coverage` uses it automatically. Repeat the same flags when rerunning installation; omitted flags select Luma/Cypress.
+
+Hyvä replaces the active storefront theme. Magento's bundled Luma/Blank packages remain part of Magento; the installer does not remove core files. Hyvä is downloaded only for `--hyva`.
+
+The v1.0.14 archive above supports Luma/Cypress. Use this checkout for the Hyvä and Playwright options. All four modes install their coverage dependencies from npm.
+
 See the [release notes](CHANGELOG.md) for changes in this version.
 
 Then generate coverage reports:
@@ -34,7 +49,7 @@ Then generate coverage reports:
 
 Coverage runs reuse the running environment and automatically warm the storefront homepage before starting tests in a fresh browser. Cache cleaning, asset refreshes and restarts are [optional arguments](docs/coverage.md#run-lifecycle); use `--start` if services are stopped.
 
-The installer asks for a test domain, defaulting to `magelens.test`, and saves it as `APPLICATION_DOMAIN` in `.env`. It downloads Magento, dependencies, and the Cypress browser; allow several minutes. To use an existing project, [copy its source before installing](#copy-a-complete-magento-project).
+The installer asks for a test domain, defaulting to `magelens.test`, and saves it as `APPLICATION_DOMAIN` in `.env`. It downloads Magento, dependencies, and the selected runner’s browser; allow several minutes. To use an existing project, [copy its source before installing](#copy-a-complete-magento-project).
 
 With the default domain and ports:
 
@@ -48,15 +63,15 @@ With the default domain and ports:
 
 Fresh installations create the Admin account `application` / `ApplicationOnly123456!`. Demo features and usage are documented in the [blog README](src/app/code/Application/Blog/README.md).
 
-Open the live runner before starting `./bin/run-coverage` to watch the Cypress window. The viewer is read-only. Use your selected domain in these URLs if you changed it during setup.
+For Cypress installations, open the live runner before starting `./bin/run-coverage` to watch the browser. The viewer is read-only. Use your selected domain in these URLs if you changed it during setup.
 
 ## Requirements
 
 - Docker Engine/Desktop with Compose **2.24.4+**, running Linux containers; Git, Bash, wget, and tar.
 - Linux or macOS. Allocate at least **6 GB RAM** to Docker (8 GB recommended) and roughly **15 GB free disk** for the first build.
-- Internet access for container images, Composer/npm dependencies, and Cypress browser download.
+- Internet access for container images, Composer/npm dependencies, and the selected browser download.
 - Magento Marketplace public/private keys for `repo.magento.com`.
-- Free local ports **80**, **443**, and **6080**. Configure `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT`, and `CYPRESS_VIEW_PORT` in `.env` to use different ports.
+- Free local ports **80** and **443**, plus **6080** for the Cypress viewer. Configure `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT`, and `CYPRESS_VIEW_PORT` in `.env` to use different ports.
 
 Installation uses Mark Shust's `bin/setup-composer-auth`. It reuses Composer credentials from the container or host, or asks for **Username** (public key) and **Password** (private key). Credentials are stored in the local `composerdata` Docker volume. To configure them separately after the PHP service starts, run `bin/setup-composer-auth`.
 
@@ -64,12 +79,12 @@ The installer adds the domain to your hosts file and uses Mark Shust's SSL tools
 
 ## Coverage reports
 
-`./bin/run-coverage` runs the project's Cypress suite and generates three reports:
+`./bin/run-coverage` runs the project’s selected browser suite and generates three reports:
 
 | Coverage | What it measures | Local report |
 | --- | --- | --- |
 | PHP | Executable PHP and `.phtml` lines reached by real Magento HTTP requests, collected with PCOV | `coverage/php/index.html` |
-| JavaScript | Instrumented browser execution, collected with Istanbul and Cypress | `coverage/js/index.html` |
+| JavaScript | Instrumented browser execution, collected with Istanbul and the selected runner | `coverage/js/index.html` |
 | HTML templates | Executed bindings and template expressions, with DOM presence reported separately | `coverage/templates/index.html` |
 
 Open `coverage/index.html` directly in your browser for the combined view. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
@@ -80,7 +95,7 @@ Read the [coverage guide](docs/coverage.md) for report semantics, collection det
 
 ## Magento environment
 
-MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the Cypress runner.
+MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the selected runner; only Cypress includes the live desktop.
 
 Magento is installed through Composer. Its modules, framework, and themes live in `src/vendor/magento/`; client modules live in `src/app/code/`. Magento runs in developer mode, generating code and static assets on demand, with page and block caches disabled for coverage collection.
 
@@ -90,7 +105,7 @@ Following Mark Shust's development setup, MageLens installs [DisableTwoFactorAut
 
 ## Dependency versions
 
-Edit **[dependencies.yaml](dependencies.yaml)**, then rerun:
+Edit **[dependencies.yaml](dependencies.yaml)**, then rerun the installer with your theme and runner flags. For Luma/Cypress:
 
 ```bash
 ./install.sh
@@ -104,17 +119,22 @@ This is the single place to choose the main dependency versions:
 | Mark Shust Docker Magento, including its PHP and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
+| Playwright | `PLAYWRIGHT_VERSION` |
+| Hyvä default theme | `HYVA_VERSION` |
 | Cypress JavaScript coverage adapter | `CYPRESS_CODE_COVERAGE_VERSION` |
 | Istanbul coverage data / instrumentation | `ISTANBUL_LIB_COVERAGE_VERSION` / `ISTANBUL_LIB_INSTRUMENT_VERSION` |
 | Istanbul report CLI (nyc) | `NYC_VERSION` |
 | [Magento template coverage](https://github.com/VitaliyBoyko/magento-template-coverage) | `TEMPLATE_COVERAGE_VERSION` |
 | Cypress runner's Node and browser system dependencies | `RUNNER_IMAGE` |
+| Playwright runner’s Node base image | `PLAYWRIGHT_RUNNER_IMAGE` |
 
 Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your Magento version.
 
-The installer synchronizes all browser dependencies, including Cypress, Istanbul, nyc, and template coverage, in `package.json` and `package-lock.json`. Commit those updated files alongside `dependencies.yaml`.
+The installer synchronizes the selected runner and shared Istanbul, nyc, and template coverage dependencies, in `package.json` and `package-lock.json`. The committed default lock selects Cypress. Installation regenerates it for Playwright when requested. Hyvä’s public package snapshot in `docker/php/hyva-packages.json` must match `HYVA_VERSION`.
 
-From a Git checkout, maintainers can validate a dependency change with `npm run test:e2e`: it installs Magento in a temporary directory, runs the full demo suite, and verifies all three coverage reports. See [test setup and artifacts](https://github.com/VitaliyBoyko/MageLens/blob/main/tests/README.md). `./install.sh --container-only [domain]` supports these container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
+To validate dependency changes, use `npm run test:e2e` for a fresh Luma/Cypress installation or `npm run test:e2e:matrix` for all four theme/runner combinations. These checks verify coverage reports in temporary environments. See [test setup and artifacts](tests/README.md). `./install.sh --container-only [domain]` supports container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
+
+Select Playwright during installation with `./install.sh --playwright`, then use `./bin/run-coverage`. Import `test` and `expect` from `playwright/support.cjs` in project specs under `playwright/e2e/` or module `Test/Playwright/` directories. Cypress remains the default. Both runners produce PHP, JavaScript and template reports with the same source-integrity checks.
 
 For installations created by MageLens, changing `MAGENTO_VERSION` updates Magento while preserving client modules, configuration, media, and the database. Installation stops if an update conflicts with local edits. Back up the database before upgrading; Magento setup can change its schema. Downgrades require a separate checkout and database.
 
@@ -129,13 +149,13 @@ After installation, Magento's full source is available in **`src/`** and bind-mo
 Copy them into their normal Magento locations, for example `src/app/code/YourVendor/YourModule` or `src/app/design/frontend/YourVendor/your-theme`, then run:
 
 ```bash
-./install.sh
+./install.sh # include --hyva and/or --playwright if selected
 ./bin/run-coverage
 ```
 
-The installer enables newly discovered modules and preserves explicitly disabled modules. Add tests under `cypress/e2e/` or inside a module's `Test/Cypress/` directory.
+The installer enables newly discovered modules and preserves explicitly disabled modules. Add Cypress tests under `cypress/e2e/` or a module's `Test/Cypress/` directory; add Playwright tests under `playwright/e2e/` or a module's `Test/Playwright/` directory. See [adding scenarios](docs/coverage.md#use-your-project) for the required Playwright coverage fixture.
 
-When no storefront theme is configured, installation selects your local theme if exactly one is available. The bundled demo therefore starts with its own theme. Existing theme choices are preserved on reruns. To switch themes or choose among several, use **Content → Design → Configuration**; the next coverage run follows your selection.
+Fresh installations select Luma by default and Hyvä with `--hyva`. Installation applies the selected base theme. To select a custom child theme afterward, use **Content → Design → Configuration**; the next coverage run follows your selection.
 
 ### Copy a complete Magento project
 
@@ -143,7 +163,7 @@ Before the first installation, place your complete project in `src/`, including 
 
 For a fresh local database, omit the copied `app/etc/env.php`. To use existing data, import your database into the local `db` service and configure `env.php` for the local services before running `./install.sh`. The database host must be `db`.
 
-Rerun `./install.sh` after module or theme changes to refresh setup and static assets. See the [coverage guide](docs/coverage.md#use-your-project) for adding scenarios and optional test fixtures.
+Rerun `./install.sh` with the same theme and runner flags after module or theme changes to refresh setup and static assets. See the [coverage guide](docs/coverage.md#use-your-project) for adding scenarios and optional test fixtures.
 
 ## Everyday commands
 
@@ -154,7 +174,7 @@ Run these from the repository root:
 ./install.sh shop.test                    # configure a different local domain
 ./bin/run-coverage                        # full suite, fresh reports, and badges
 ./bin/application-compose logs app phpfpm # inspect nginx and PHP logs
-./bin/application-compose logs runner     # inspect Cypress desktop startup
+./bin/application-compose logs runner     # inspect browser runner startup
 ./bin/application-compose stop            # stop this project's services
 bin/start                                 # start the installed environment
 bin/magento cache:clean
@@ -182,8 +202,9 @@ Avoid changing application data while the tests run. See the [coverage guide](do
 | `src/vendor/` | Composer dependencies, including Magento core |
 | `install.sh`, `compose.yaml`, `docker/` | Installation and Docker services |
 | [dependencies.yaml](dependencies.yaml) | Dependency version settings |
-| `bin/run-coverage` | Run the Cypress suite and generate coverage |
+| `bin/run-coverage` | Run the selected browser suite and generate coverage |
 | `cypress/`, module `Test/Cypress/` directories | Project scenarios and browser coverage collectors |
+| `playwright/`, module `Test/Playwright/` directories | Playwright scenarios and coverage fixtures |
 | `coverage/` | Generated reports and badges |
 | [Blog demo](src/app/code/Application/Blog/README.md) | Example application exercising all three collectors |
 | [Coverage guide](docs/coverage.md) | Collector details and customization |

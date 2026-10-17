@@ -4,22 +4,26 @@ start_services=0
 refresh_cache=0
 refresh_assets=0
 restart_php=0
+runner=${MAGELENS_RUNNER:-cypress}
 for option in "$@"; do
     case "$option" in
         --start) start_services=1 ;;
         --refresh-cache) refresh_cache=1 ;;
         --refresh-assets) refresh_assets=1 ;;
         --restart-php) restart_php=1 ;;
+        --runner=cypress) runner=cypress ;;
+        --runner=playwright) runner=playwright ;;
         --help|-h)
             cat <<'HELP'
 Usage: ./bin/run-coverage [options]
 
-Run the full Cypress suite and create fresh coverage reports using the running environment.
+Run the selected browser suite and create fresh coverage reports using the running environment.
 
   --start           Start stopped application services before the run
   --refresh-cache   Clean Magento caches (for example after layout/config changes)
   --refresh-assets  Clear published static assets and Magento caches
   --restart-php     Restart PHP-FPM before the run
+  --runner=cypress|playwright Assert the installed runner (defaults to saved selection)
   --help            Show this help
 
 Source edits and theme selections are picked up automatically. Options can be combined.
@@ -28,6 +32,7 @@ HELP
         *) fail "Unknown option: $option. Use --help for available refresh options." ;;
     esac
 done
+[[ "$runner" == "${MAGELENS_RUNNER:-cypress}" ]] || fail 'This runner is not installed. Rerun ./install.sh with the required runner selection.'
 preflight
 [[ -f .runtime/installed ]] || fail 'Run ./install.sh first.'
 [[ "$(cat .runtime/installed)" == 2 ]] || fail 'Rerun ./install.sh once to update the coverage runtime.'
@@ -42,7 +47,11 @@ if (( restart_php )); then
     dc restart -t 60 phpfpm
     dc up -d --wait --wait-timeout 60 phpfpm
 fi
-dc exec -T runner true || fail 'The Cypress runner is stopped. Use ./bin/run-coverage --start.'
+dc exec -T runner true || fail 'The browser runner is stopped. Use ./bin/run-coverage --start.'
+if [[ "$runner" == playwright ]]; then
+    dc exec -T runner node -e "require.resolve('@vitaliiboiko/magento-template-coverage/playwright')" >/dev/null \
+        || fail 'Playwright coverage requires template coverage 1.2 or newer. Update dependencies.yaml and rerun ./install.sh --playwright.'
+fi
 dc exec -T phpfpm php /application/docker/php/collection.php stop || fail 'Cannot prepare PHP collection. If services are stopped, use --start.'
 cleanup_hooks() {
     if [[ -f .runtime/hooks-active ]]; then
@@ -69,12 +78,14 @@ elif (( refresh_cache )); then
 fi
 say 'Preparing fresh coverage'
 dc exec -T phpfpm php /application/docker/php/theme-scope.php > .runtime/active-themes.json
-dc exec -T runner node bin/prepare.cjs --theme-roots .runtime/active-themes.json
+dc exec -T -e MAGELENS_RUNNER="$runner" runner node bin/prepare.cjs --theme-roots .runtime/active-themes.json
 touch .runtime/hooks-active
 dc exec -T phpfpm php /application/docker/php/project-hooks.php before
 dc exec -T phpfpm php /application/docker/php/project-hooks.php prepare > coverage/project-fixtures.json
 say 'Warming the storefront homepage in a separate browser (up to 10 minutes)'
-if dc exec -T runner timeout --signal=TERM --kill-after=10s 600s node bin/run-browser.cjs --warmup; then
+browser_script=bin/run-browser.cjs
+[[ "$runner" == playwright ]] && browser_script=bin/run-playwright.cjs
+if dc exec -T runner timeout --signal=TERM --kill-after=10s 600s node "$browser_script" --warmup; then
     say 'Browser warm-up completed; starting fresh coverage collection'
 else
     result=$?
@@ -86,8 +97,8 @@ else
 fi
 dc exec -T phpfpm php /application/docker/php/manifest.php
 dc exec -T phpfpm php /application/docker/php/collection.php start
-say "Running the full Cypress suite (preparation: ${SECONDS}s)"
-dc exec -T runner node bin/run-browser.cjs
+say "Running the full $runner suite (preparation: ${SECONDS}s)"
+dc exec -T runner node "$browser_script"
 say 'Generating coverage reports'
 dc exec -T phpfpm php /application/docker/php/report.php
 dc exec -T runner sh -c 'node bin/report-browser.cjs && node bin/finalize.cjs'

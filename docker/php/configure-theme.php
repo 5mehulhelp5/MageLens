@@ -65,5 +65,24 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     require __DIR__ . '/project.php';
     $om = Magento\Framework\App\Bootstrap::create(BP, $_SERVER)->getObjectManager();
     $om->get(Magento\Framework\App\State::class)->setAreaCode('adminhtml');
-    configureProjectTheme($om, project()['roots']);
+    $profile = getenv('MAGELENS_THEME');
+    if ($profile === 'luma' || $profile === 'hyva') {
+        $themePath = $profile === 'hyva' ? 'Hyva/default' : 'Magento/luma';
+        $om->get(Magento\Theme\Model\Theme\Registration::class)->register();
+        $theme = $om->create(Magento\Theme\Model\ResourceModel\Theme\Collection::class)
+            ->addFieldToFilter('area', 'frontend')->addFieldToFilter('theme_path', $themePath)->getFirstItem();
+        if (!$theme->getId()) throw new RuntimeException('Selected theme is not registered: ' . $themePath);
+        $writer = $om->get(Magento\Framework\App\Config\Storage\WriterInterface::class);
+        $writer->save('design/theme/theme_id', $theme->getId());
+        if ($profile === 'hyva') {
+            foreach (['customer/captcha/enable', 'dev/template/minify_html', 'dev/js/merge_files', 'dev/js/enable_js_bundling',
+                'dev/js/minify_files', 'dev/js/move_script_to_bottom', 'dev/css/merge_css_files', 'dev/css/minify_files'] as $setting) {
+                $writer->save($setting, 0);
+            }
+        }
+        $om->get(Magento\Framework\App\Cache\TypeListInterface::class)->cleanType('config');
+        echo 'Enabled ', $themePath, "\n";
+    } else {
+        configureProjectTheme($om, project()['roots']);
+    }
 }

@@ -1,0 +1,14 @@
+<?php declare(strict_types=1); ?>
+<section data-cy="probe" data-save-url="<?= $block->getUrl('coverageprobe/index/save') ?>" data-form-key="<?= $block->getFormKey() ?>" x-data="coverageProbe($el.dataset.saveUrl, $el.dataset.formKey)">
+<input aria-label="Probe name" data-cy="probe-name" x-model="name">
+<span data-cy="probe-echo" x-text="name"></span>
+<button data-cy="probe-increment" @click="increment()">Increment</button>
+<output data-cy="probe-count" x-text="count"></output>
+<button data-cy="probe-save" @click="save()">Save</button>
+<output data-cy="probe-saved" x-text="saved"></output>
+<template x-for="item in items"><span data-cy="probe-item" x-text="item"></span></template>
+<template x-if="open">
+<span data-cy="probe-never" x-text="'never executed'"></span>
+</template>
+<button hidden data-cy="probe-unused" @click="unused()">Unused action</button>
+</section>

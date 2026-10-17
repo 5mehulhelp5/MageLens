@@ -6,7 +6,7 @@ Browser scenarios live in `Test/Cypress/`; fixture creation, cleanup, and Cypres
 
 ## Try the demo
 
-From the repository root, run `./install.sh`, then `./bin/run-coverage`.
+Use the default Luma/Cypress installation for the bundled demo scenarios. From the repository root, run `./install.sh`, then `./bin/run-coverage`.
 
 - Storefront: **https://magelens.test/blog/**.
 - Magento Admin: **https://magelens.test/admin/**; local demo credentials are `application` / `ApplicationOnly123456!`.
@@ -28,7 +28,7 @@ Admin uses Magento's normal login, Blog ACL permission, secret URL keys, and for
 
 Content is shared across this installation's store views, with one category per post. Articles and comments use plain text. This demo is intended for local development.
 
-The demo starts with its own storefront theme. You can switch themes in **Content → Design → Configuration**; the blog's functional tests continue to run, while the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
+Installation selects Luma. To use the included demonstration theme, select `Application/coverage` in **Content → Design → Configuration**. The blog's functional tests run with either theme; the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
 
 ## What Cypress verifies
 

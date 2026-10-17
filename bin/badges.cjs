@@ -6,7 +6,8 @@ const icons = {
     php: {file: 'php', color: '#a3a7d5', label: 'PHP lines'},
     js: {file: 'javascript', color: '#f7df1e', label: 'JavaScript lines'},
     templates: {file: 'html5', color: '#e34f26', label: 'Template executable lines'},
-    cypress: {file: 'cypress', color: '#69d3a7', label: 'Cypress'}
+    cypress: {file: 'cypress', color: '#69d3a7', label: 'Cypress'},
+    playwright: {file: null, color: '#69d3a7', label: 'Playwright'}
 };
 const escape = value => String(value).replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -25,8 +26,8 @@ function setBadgeSection(content) {
 function renderBadge(type, value, color) {
     const icon = icons[type];
     if (!icon) throw new Error('Unknown badge icon');
-    const source = fs.readFileSync(path.join(__dirname, '../assets/badge-icons', `${icon.file}.svg`), 'utf8');
-    const drawing = source.match(/<path\s+d="[^"]+"\s*\/>/g)?.join('');
+    const source = icon.file ? fs.readFileSync(path.join(__dirname, '../assets/badge-icons', `${icon.file}.svg`), 'utf8') : '';
+    const drawing = icon.file ? source.match(/<path\s+d="[^"]+"\s*\/>/g)?.join('') : '<text x="0" y="19" font-family="sans-serif" font-size="14">PW</text>';
     if (!drawing) throw new Error(`Missing SVG icon: ${type}`);
     const left = 40;
     const right = Math.ceil(value.length * 8.5) + 20;
@@ -41,7 +42,7 @@ function badge(type, percent) {
     const color = percent >= 80 ? '#4c1' : percent >= 50 ? '#a4a61d' : '#e05d44';
     return renderBadge(type, value, color);
 }
-function cypressBadge(results) {
+function cypressBadge(results, runner = 'cypress') {
     const counts = ['totalTests', 'totalPassed', 'totalFailed', 'totalPending', 'totalSkipped'].map(key => results[key]);
     if (counts.some(count => !Number.isSafeInteger(count) || count < 0) || !results.totalTests ||
         counts.slice(1).reduce((sum, count) => sum + count, 0) !== results.totalTests) {
@@ -51,7 +52,7 @@ function cypressBadge(results) {
     const passed = !failed && results.totalPassed === results.totalTests;
     const percent = Number((100 * results.totalPassed / results.totalTests).toFixed(2));
     const status = passed ? 'Passed' : failed ? 'Failed' : 'Incomplete';
-    return renderBadge('cypress', `${percent}% (${results.totalPassed}/${results.totalTests}) - ${status}`,
+    return renderBadge(runner, `${percent}% (${results.totalPassed}/${results.totalTests}) - ${status}`,
         passed ? '#4c1' : failed ? '#e05d44' : '#a4a61d');
 }
 module.exports = {replaceBadgeSection, setBadgeSection, badge, cypressBadge};

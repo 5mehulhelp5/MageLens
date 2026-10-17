@@ -60,6 +60,8 @@ services:
       APPLICATION_UID: ${LOCAL_UID:-1000}
       APPLICATION_GID: ${LOCAL_GID:-1000}
       MAGENTO_VERSION: ${MAGENTO_VERSION:?Missing dependencies.yaml configuration}
+      MAGELENS_THEME: ${MAGELENS_THEME:-luma}
+      HYVA_VERSION: ${HYVA_VERSION:?Missing dependencies.yaml configuration}
     healthcheck:
       test: ["CMD", "php", "/application/docker/php/healthcheck.php"]
       interval: 5s
@@ -120,14 +122,19 @@ services:
     build:
       context: .
       dockerfile: docker/runner/Dockerfile
+      target: ${MAGELENS_RUNNER:-cypress}
       args:
         RUNNER_IMAGE: ${RUNNER_IMAGE:?Missing dependencies.yaml configuration}
+        PLAYWRIGHT_RUNNER_IMAGE: ${PLAYWRIGHT_RUNNER_IMAGE:?Missing dependencies.yaml configuration}
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     working_dir: /workspace
     environment:
       HOME: /tmp
+      MAGELENS_RUNNER: ${MAGELENS_RUNNER:-cypress}
+      MAGELENS_THEME: ${MAGELENS_THEME:-luma}
       CYPRESS_CACHE_FOLDER: /opt/cypress
       CYPRESS_BASE_URL: "https://${APPLICATION_DOMAIN:-magelens.test}:${APPLICATION_HTTPS_PORT:-443}"
+      PLAYWRIGHT_BASE_URL: "https://${APPLICATION_DOMAIN:-magelens.test}:${APPLICATION_HTTPS_PORT:-443}"
       APPLICATION_DOMAIN: ${APPLICATION_DOMAIN:-magelens.test}
       APPLICATION_PORT: ${APPLICATION_PORT:-80}
       APPLICATION_HTTPS_PORT: ${APPLICATION_HTTPS_PORT:-443}

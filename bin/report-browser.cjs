@@ -4,6 +4,11 @@ const {createCoverageMap} = require('istanbul-lib-coverage');
 const {isCoverageExcluded} = require('./project.cjs');
 const raw = fs.existsSync('.nyc_output/out.json') ? JSON.parse(fs.readFileSync('.nyc_output/out.json')) : {};
 const actual = createCoverageMap(raw);
+if (fs.existsSync('.nyc_output')) {
+    for (const file of fs.readdirSync('.nyc_output').filter(file => /^playwright-.*\.json$/.test(file))) {
+        actual.merge(JSON.parse(fs.readFileSync(`.nyc_output/${file}`)));
+    }
+}
 const baseline = createCoverageMap(JSON.parse(fs.readFileSync('.runtime/js-baseline.json')));
 // Also discard excluded records left by older instrumentation or coverage plugins.
 actual.filter(file => !isCoverageExcluded(file));

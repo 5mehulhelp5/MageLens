@@ -1,0 +1,12 @@
+<section data-cy="probe">
+<input aria-label="Probe name" data-cy="probe-name" data-bind="textInput: inputValue">
+<span data-cy="probe-echo" data-bind="text: inputValue"></span>
+<button data-cy="probe-increment" data-bind="click: increment">Increment</button>
+<output data-cy="probe-count" data-bind="text: count"></output>
+<button data-cy="probe-save" data-bind="click: save">Save</button>
+<output data-cy="probe-saved" data-bind="text: saved"></output>
+<!-- ko foreach: items --><span data-cy="probe-item" data-bind="text: $data"></span><!-- /ko -->
+<!-- ko if: open -->
+<span data-cy="probe-never" data-bind="text: 'never executed'"></span>
+<!-- /ko -->
+</section>

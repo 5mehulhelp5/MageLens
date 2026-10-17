@@ -26,6 +26,7 @@
 !/bin/report-browser.cjs
 !/bin/report-index.cjs
 !/bin/run-browser.cjs
+!/bin/run-playwright.cjs
 !/bin/run-coverage
 !/bin/sync-dependencies.cjs
 /.env

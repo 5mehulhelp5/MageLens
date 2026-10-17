@@ -166,3 +166,11 @@ test('nginx uses the selected ports and rejects collisions and invalid ports', (
     assert.throws(() => nginxConfig(template, {APPLICATION_PORT: '443'}), /different/);
     assert.throws(() => nginxConfig(template, {APPLICATION_PORT: '70000'}), /Invalid/);
 });
+
+
+test('Playwright nginx configuration has no Cypress viewer', () => {
+    const template = fs.readFileSync(`${projectRoot}/docker/nginx.conf`, 'utf8');
+    const config = nginxConfig(template, {MAGELENS_RUNNER: 'playwright'});
+    assert.doesNotMatch(config, /runner:6080|vnc.html|listen 6080/);
+    assert.match(config, /listen 443 ssl/);
+});

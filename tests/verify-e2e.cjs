@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const {createHash} = require('node:crypto');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 for (const [name, version] of Object.entries(read('package.json').devDependencies)) {
-    assert.equal(read(`node_modules/${name}/package.json`).version, version, `Installed version differs: ${name}`);
+    const expected = version.startsWith('file:') ? read('package-lock.json').packages[`node_modules/${name}`].version : version;
+    assert.equal(read(`node_modules/${name}/package.json`).version, expected, `Installed version differs: ${name}`);
 }
 const run = read('coverage/run.json');
-const tests = read('coverage/cypress-results.json');
+const tests = read(`coverage/${run.runner || 'cypress'}-results.json`);
 const summary = read('coverage/summary.json');
 assert.equal(tests.run, run.id);
 assert.equal(summary.run, run.id);

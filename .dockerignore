@@ -3,3 +3,8 @@
 !docker/**
 !package.json
 !package-lock.json
+
+!.runtime/
+.runtime/*
+!.runtime/template-package/
+!.runtime/template-package/**

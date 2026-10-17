@@ -9,11 +9,13 @@ const root = path.resolve(__dirname, '..');
 const yaml = fs.readFileSync(path.join(root, 'dependencies.yaml'), 'utf8');
 const configured = key => yaml.match(new RegExp(`^${key}: \"([^\"]+)\"`, 'm'))[1];
 const browserVersions = {
+    PLAYWRIGHT_VERSION: '1.64.1',
     CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.2.0',
     CYPRESS_CODE_COVERAGE_VERSION: '4.1.0', ISTANBUL_LIB_COVERAGE_VERSION: '3.2.3',
     ISTANBUL_LIB_INSTRUMENT_VERSION: '6.0.4', NYC_VERSION: '18.0.1'
 };
 const browserPackages = {
+    PLAYWRIGHT_VERSION: '@playwright/test',
     CYPRESS_VERSION: 'cypress', TEMPLATE_COVERAGE_VERSION: '@vitaliiboiko/magento-template-coverage',
     CYPRESS_CODE_COVERAGE_VERSION: '@cypress/code-coverage', ISTANBUL_LIB_COVERAGE_VERSION: 'istanbul-lib-coverage',
     ISTANBUL_LIB_INSTRUMENT_VERSION: 'istanbul-lib-instrument', NYC_VERSION: 'nyc'
@@ -24,11 +26,16 @@ const select = (content, values) => Object.entries(values).reduce((text, [key, v
 test('committed browser dependencies and locks match the central version settings', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
     const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json')));
-    assert.deepEqual(Object.keys(manifest.devDependencies).sort(), Object.values(browserPackages).sort());
-    for (const [key, name] of Object.entries(browserPackages)) {
-        assert.equal(manifest.devDependencies[name], configured(key), name);
-        assert.equal(lock.packages[''].devDependencies[name], configured(key), name);
-        assert.equal(lock.packages[`node_modules/${name}`].version, configured(key), name);
+    const runner = process.env.MAGELENS_RUNNER || 'cypress';
+    const selected = Object.entries(browserPackages).filter(([key]) => runner === 'cypress' ? key !== 'PLAYWRIGHT_VERSION' : !['CYPRESS_VERSION', 'CYPRESS_CODE_COVERAGE_VERSION'].includes(key));
+    assert.deepEqual(Object.keys(manifest.devDependencies).sort(), selected.map(([, name]) => name).sort());
+    for (const [key, name] of selected) {
+        const local = key === 'TEMPLATE_COVERAGE_VERSION' && manifest.devDependencies[name] === 'file:.runtime/template-coverage.tgz';
+        const expected = local ? manifest.devDependencies[name] : configured(key);
+        assert.equal(manifest.devDependencies[name], expected, name);
+        assert.equal(lock.packages[''].devDependencies[name], expected, name);
+        if (!local) assert.equal(lock.packages[`node_modules/${name}`].version, expected, name);
+        else assert.ok(fs.existsSync(path.join(root, '.runtime/template-coverage.tgz')));
     }
 });
 
@@ -99,7 +106,7 @@ test('changing browser versions updates both manifests before npm ci, without ch
     const selected = browserVersions;
     assert.equal(syncDependencies(directory, selected, resolve), true);
     const result = JSON.parse(fs.readFileSync(path.join(directory, 'package.json')));
-    for (const [key, name] of Object.entries(browserPackages)) assert.equal(result.devDependencies[name], selected[key]);
+    for (const [key, name] of Object.entries(browserPackages)) assert.equal(result.devDependencies[name], key === 'PLAYWRIGHT_VERSION' ? undefined : selected[key]);
     assert.equal(result.devDependencies.unrelated, '3.0.0');
     assert.deepEqual(result.nyc, {include: ['keep']});
     assert.equal(syncDependencies(directory, selected, resolve), false);
@@ -117,8 +124,9 @@ test('failed dependency resolution preserves the working manifest and lock', t =
     assert.deepEqual(files.map(file => fs.readFileSync(path.join(directory, file), 'utf8')), original);
 });
 
+for (const [theme, runner] of [['luma', 'cypress'], ['hyva', 'cypress'], ['luma', 'playwright'], ['hyva', 'playwright']]) {
 for (const containerOnly of [false, true]) {
-test(`installer uses configured versions with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
+test(`installer selects ${theme}/${runner} with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
     const directory = workspace(t);
     for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/expose-tools', 'bin/application-domain']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
@@ -144,24 +152,27 @@ fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({command: require('node
     magento: process.env.MAGENTO_VERSION, pcov: process.env.PCOV_VERSION,
     cypress: process.env.CYPRESS_VERSION, templates: process.env.TEMPLATE_COVERAGE_VERSION,
     browserVersions: Object.fromEntries(${JSON.stringify(Object.keys(browserVersions))}.map(key => [key, process.env[key]])),
-    php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
+    theme: process.env.MAGELENS_THEME, runner: process.env.MAGELENS_RUNNER, php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
 if (args.includes('version')) console.log('2.24.4');
 if (args.includes('--images')) console.log('markoshust/magento-php:8.5-fpm-1');
 if (args.includes('--print')) console.log('https://shop.magelens.test/');
 if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:6080/');
 `;
     for (const command of ['docker', 'git', 'sudo']) fs.writeFileSync(path.join(commands, command), script, {mode: 0o755});
-    execFileSync('bash', ['install.sh', ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
+    execFileSync('bash', ['install.sh', ...(theme === 'hyva' ? ['--hyva'] : []), ...(runner === 'playwright' ? ['--playwright'] : []), ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
         {cwd: directory, env: {...process.env, PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
     const calls = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
     assert.ok(calls.some(call => call.command === 'git' && call.args.includes('refs/tags/54.0.0')));
     const sync = calls.find(call => call.args.includes('bin/sync-dependencies.cjs'));
-    assert.ok(sync.args.includes('cypress/base:24.16.0'));
+    assert.ok(sync.args.includes(runner === 'cypress' ? 'cypress/base:24.16.0' : configured('PLAYWRIGHT_RUNNER_IMAGE')), 'Bootstrap must use the selected runner base');
     assert.equal(sync.cypress, '16.2.0');
     assert.equal(sync.templates, '1.2.0');
     assert.deepEqual(sync.browserVersions, browserVersions);
     for (const key of Object.keys(browserVersions)) assert.ok(sync.args.includes(key), `Container must receive ${key}`);
     const build = calls.find(call => call.args.includes('build'));
+    assert.equal(build.theme, theme);
+    assert.equal(build.runner, runner);
+    assert.equal(fs.readFileSync(path.join(directory, '.runtime/install-profile'), 'utf8'), `${theme} ${runner}\n`);
     assert.equal(build.magento, '2.4.9');
     assert.equal(build.pcov, '2.2.0');
     assert.equal(build.php, 'markoshust/magento-php:8.5-fpm-1');
@@ -198,9 +209,10 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
         assert.equal(certificate, undefined);
     }
     assert.match(fs.readFileSync(path.join(directory, '.env'), 'utf8'), /^APPLICATION_DOMAIN=shop\.magelens\.test$/m);
-    assert.ok(calls.some(call => call.args.includes('exec') && call.args.includes('runner') && call.args.includes('verify')));
+    assert.equal(calls.some(call => call.args.includes('exec') && call.args.includes('runner') && call.args.includes('cypress') && call.args.includes('verify')), runner === 'cypress');
     assert.ok(fs.existsSync(path.join(directory, '.runtime/installed')));
 });
+}
 }
 
 test('Compose inherits service images and PHP from the selected Mark Shust configuration', t => {

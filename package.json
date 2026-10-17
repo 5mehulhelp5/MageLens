@@ -6,11 +6,12 @@
   "scripts": {
     "cy:coverage": "./bin/run-coverage",
     "test:integration": "node --test tests/*.test.cjs",
-    "test:e2e": "bash tests/e2e-isolated.sh"
+    "test:e2e": "bash tests/e2e-isolated.sh",
+    "test:e2e:matrix": "bash tests/e2e-matrix.sh"
   },
   "devDependencies": {
     "@cypress/code-coverage": "4.0.3",
-    "@vitaliiboiko/magento-template-coverage": "1.1.2",
+    "@vitaliiboiko/magento-template-coverage": "1.2.0",
     "cypress": "16.2.0",
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-instrument": "6.0.3",

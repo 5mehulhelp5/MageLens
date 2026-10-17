@@ -3,6 +3,13 @@ set -euo pipefail
 source "$(dirname "$0")/../bin/common"
 preflight
 [[ $# == 0 ]] || fail 'Usage: bash tests/e2e-isolated.sh (see tests/README.md for configuration)'
+theme=${MAGELENS_E2E_THEME:-luma}
+runner=${MAGELENS_E2E_RUNNER:-cypress}
+[[ "$theme" == luma || "$theme" == hyva ]] || fail 'MAGELENS_E2E_THEME must be luma or hyva.'
+[[ "$runner" == cypress || "$runner" == playwright ]] || fail 'MAGELENS_E2E_RUNNER must be cypress or playwright.'
+install_options=()
+[[ "$theme" != hyva ]] || install_options+=(--hyva)
+[[ "$runner" != playwright ]] || install_options+=(--playwright)
 
 if [[ -n "${MAGELENS_COMPOSER_AUTH_VOLUME:-}" ]]; then
     docker volume inspect "$MAGELENS_COMPOSER_AUTH_VOLUME" >/dev/null
@@ -35,6 +42,11 @@ cleanup() {
     if [[ -d "$scratch/cypress/screenshots" ]]; then
         cp -a "$scratch/cypress/screenshots" "$artifacts/" || result=1
     fi
+    if (( result != 0 )) && [[ "${MAGELENS_E2E_KEEP_ON_FAILURE:-0}" == 1 ]]; then
+        printf 'Failed E2E workspace retained for debugging: %s\n' "$scratch" >&2
+        printf 'Clean up with: cd %q && ./bin/application-compose --profile "*" down --volumes --remove-orphans\n' "$scratch" >&2
+        exit "$result"
+    fi
     if [[ -f "$scratch/.runtime/docker-magento/compose/compose.yaml" ]]; then
         (cd "$scratch" && ./bin/application-compose logs --no-color) > "$artifacts/services.log" 2>&1 || true
         # Include the install-only workspace profile so its legacy appdata volume
@@ -56,14 +68,22 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-for file in bin docker patches cypress tests assets install.sh compose.yaml dependencies.yaml package.json package-lock.json cypress.config.cjs README.md; do
+for file in bin docker patches cypress playwright tests assets install.sh .dockerignore compose.yaml dependencies.yaml package.json package-lock.json cypress.config.cjs playwright.config.cjs README.md; do
     cp -a "$file" "$scratch/"
 done
+mkdir -p "$scratch/docker/php/e2e"
+cp tests/fixtures/compatibility/*.php "$scratch/docker/php/e2e/"
 # Exercise the bundled demo only; existing Magento data and third-party modules
 # are not fixtures. Composer downloads a clean source tree into this workspace.
 mkdir -p "$scratch/src/app/code" "$scratch/src/app/design/frontend"
-cp -a src/app/code/Application "$scratch/src/app/code/"
+if [[ "$theme" != hyva ]]; then cp -a src/app/code/Application "$scratch/src/app/code/"; fi
 cp -a src/app/design/frontend/Application "$scratch/src/app/design/frontend/"
+mkdir -p "$scratch/src/app/code/MageLens"
+cp -a tests/fixtures/compatibility/module "$scratch/src/app/code/MageLens/Compatibility"
+if [[ -n "${MAGELENS_TEMPLATE_COVERAGE_PACKAGE:-}" ]]; then
+    mkdir -p "$scratch/.runtime"
+    cp "$MAGELENS_TEMPLATE_COVERAGE_PACKAGE" "$scratch/.runtime/template-coverage.tgz"
+fi
 cd "$scratch"
 printf 'COMPOSE_PROJECT_NAME=%s\nAPPLICATION_DOMAIN=%s\nAPPLICATION_PORT=%s\nAPPLICATION_HTTPS_PORT=%s\nCYPRESS_VIEW_PORT=%s\n' \
     "$project" "$APPLICATION_DOMAIN" "$APPLICATION_PORT" "$APPLICATION_HTTPS_PORT" "$CYPRESS_VIEW_PORT" > .env
@@ -74,17 +94,37 @@ grep -qF 'image: ${COMPOSE_PROJECT_NAME}-php:e2e' compose.yaml || fail 'Could no
 
 docker volume create --label "com.docker.compose.project=$project" \
     --label com.docker.compose.volume=composerdata "${project}_composerdata" >/dev/null
+bootstrap_image=$RUNNER_IMAGE
+[[ "$runner" != playwright ]] || bootstrap_image=$PLAYWRIGHT_RUNNER_IMAGE
 docker run --rm --user root --entrypoint sh \
     --mount "$auth_mount" \
     --mount "type=volume,source=${project}_composerdata,target=/composer" \
-    "$RUNNER_IMAGE" -c 'cp "$3" /composer/auth.json && chmod 600 /composer/auth.json && chown "$1:$2" /composer/auth.json' \
+    "$bootstrap_image" -c 'cp "$3" /composer/auth.json && chmod 600 /composer/auth.json && chown "$1:$2" /composer/auth.json' \
     sh "$LOCAL_UID" "$LOCAL_GID" "$auth_path"
 
 (
-    ./install.sh --container-only "$APPLICATION_DOMAIN"
+    ./install.sh --container-only "${install_options[@]}" "$APPLICATION_DOMAIN"
+    ./bin/application-compose exec -T runner node tests/verify-installation.cjs "$theme" "$runner"
+    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme"
     ./bin/application-compose exec -T runner node tests/dependencies.test.cjs
+    if [[ "$runner" == playwright ]]; then
+        ./bin/application-compose exec -T runner npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @elgentos/magento2-playwright@7.1.0
+        ./bin/application-compose exec -T runner node tests/setup-compatibility.cjs
+    fi
+    if [[ "$theme" == hyva ]]; then
+        mkdir -p src/app/design/frontend/MageLens
+        cp -a tests/fixtures/compatibility/hyva src/app/design/frontend/MageLens/hyva
+        ./bin/application-compose exec -T runner node bin/prepare.cjs --runtime-only
+        ./bin/application-compose exec -T phpfpm php bin/magento setup:upgrade
+        ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/select-theme.php MageLens/hyva
+    fi
+    ./bin/application-compose exec -T phpfpm bash /application/docker/php/refresh-assets.sh
+    # The installer selection must drive coverage without an extra runner flag.
     ./bin/run-coverage
-    ./bin/application-compose exec -T runner node tests/verify-demo.cjs
+    if [[ "$runner" == cypress && "$theme" != hyva ]]; then ./bin/application-compose exec -T runner node tests/verify-demo.cjs; fi
     ./bin/application-compose exec -T runner node tests/verify-e2e.cjs
+    ./bin/application-compose exec -T runner node tests/verify-compatibility.cjs "$theme"
+    mkdir -p "$artifacts/$runner"
+    cp -a coverage "$artifacts/$runner/"
 ) 2>&1 | tee "$artifacts/run.log"
-printf 'PASS: isolated installation, Cypress suite, and PHP/JavaScript/template coverage.\n'
+printf 'PASS: isolated %s installation, %s, and PHP/JavaScript/template coverage.\n' "$theme" "$runner"
