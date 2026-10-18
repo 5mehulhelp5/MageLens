@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.2.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -93,9 +93,11 @@ The installer adds the domain to your hosts file and uses Mark Shust's SSL tools
 
 | Coverage | What it measures | Local report |
 | --- | --- | --- |
-| PHP | Executable PHP and `.phtml` lines reached by real Magento HTTP requests, collected with PCOV | `coverage/php/index.html` |
+| PHP | Executable PHP lines in `.php` and `.phtml` files reached by Magento HTTP requests, shown against your original source | `coverage/php/index.html` |
 | JavaScript | Statements in whole `.js` files, collected with Istanbul and the selected runner | `coverage/js/index.html` |
 | Templates | HTML/PHTML bindings, template expressions and inline scripts, with script functions, branches and DOM presence reported separately | `coverage/templates/index.html` |
+
+PHP coverage excludes emitted HTML and inline JavaScript. Template warnings identify unsupported directives, scripts or PHP-generated output. When a warning is present, the template percentage covers only the parts MageLens can measure.
 
 Open `coverage/index.html` directly in your browser for the combined view. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
 
@@ -111,7 +113,7 @@ Magento is installed through Composer. Its modules, framework, and themes live i
 
 The coverage configuration is explicit in [docker/php/env.php.sample](docker/php/env.php.sample). Installation merges this fragment into `src/app/etc/env.php`, preserving credentials and unrelated settings. HTML/PHTML and browser assets run without minification.
 
-Following Mark Shust's development setup, MageLens installs [DisableTwoFactorAuth](https://github.com/markshust/magento2-module-disabletwofactorauth) as a Composer development dependency and turns off Admin 2FA for this local environment. Cypress can sign in with the Admin username and password.
+Following Mark Shust's development setup, MageLens installs [DisableTwoFactorAuth](https://github.com/markshust/magento2-module-disabletwofactorauth) as a Composer development dependency and turns off Admin 2FA for this local environment. Your browser tests can sign in with the Admin username and password.
 
 ## Dependency versions
 
@@ -140,9 +142,9 @@ This is the single place to choose the main dependency versions:
 
 Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your Magento version.
 
-The installer synchronizes the selected runner and shared Istanbul, nyc, and template coverage dependencies, in `package.json` and `package-lock.json`. The committed default lock selects Cypress. Installation regenerates it for Playwright when requested. Hyvä’s public package snapshot in `docker/php/hyva-packages.json` must match `HYVA_VERSION`.
+The installer updates `package.json` and `package-lock.json` for your selected runner and coverage tools. You do not need to install Cypress or Playwright separately. Hyvä upgrades also require a matching package list in `docker/php/hyva-packages.json` for the selected `HYVA_VERSION`.
 
-To validate dependency changes, use `npm run test:e2e` for a fresh Luma/Cypress installation or `npm run test:e2e:matrix` for all six theme/runner combinations. These checks verify coverage reports in temporary environments. See [test setup and artifacts](tests/README.md). `./install.sh --container-only [domain]` supports container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
+After changing versions, run `./bin/run-coverage` to check your tests and regenerate reports. For automated environments, `./install.sh --container-only [domain]` uses self-signed HTTPS without changing host DNS or certificate trust.
 
 Select Playwright during installation with `./install.sh --playwright`, then use `./bin/run-coverage`. Import `test` and `expect` from `playwright/support.cjs` in project specs under `playwright/e2e/` or module `Test/Playwright/` directories. Cypress remains the default. Both runners produce PHP, JavaScript and template reports with the same source-integrity checks.
 
