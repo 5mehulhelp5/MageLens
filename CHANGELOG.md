@@ -1,6 +1,6 @@
 # Release notes
 
-## Unreleased
+## 1.2.0 — 2026-10-18
 
 - Updated Magento template coverage to 1.3.0. HTML/PHTML bindings, template expressions and inline scripts now share the template report, with script functions and branches mapped to original source lines. PHP executable lines remain in the PHP report.
 - JavaScript reports contain whole `.js` files and use statement percentages, with separate application and bundled-library views.

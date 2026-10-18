@@ -4,7 +4,7 @@
 
 # MageLens
 
-**Quickly bootstrap Magento with code coverage.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and HTML template coverage from a Cypress or Playwright run.
+**Quickly bootstrap Magento with code coverage.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
 
 Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.1.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.2.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -84,8 +84,8 @@ The installer adds the domain to your hosts file and uses Mark Shust's SSL tools
 | Coverage | What it measures | Local report |
 | --- | --- | --- |
 | PHP | Executable PHP and `.phtml` lines reached by real Magento HTTP requests, collected with PCOV | `coverage/php/index.html` |
-| JavaScript | Instrumented browser execution, collected with Istanbul and the selected runner | `coverage/js/index.html` |
-| HTML templates | Executed bindings and template expressions, with DOM presence reported separately | `coverage/templates/index.html` |
+| JavaScript | Statements in whole `.js` files, collected with Istanbul and the selected runner | `coverage/js/index.html` |
+| Templates | HTML/PHTML bindings, template expressions and inline scripts, with script functions, branches and DOM presence reported separately | `coverage/templates/index.html` |
 
 Open `coverage/index.html` directly in your browser for the combined view. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
 
