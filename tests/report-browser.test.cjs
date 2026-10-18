@@ -84,3 +84,56 @@ test('reporting still rejects application coverage outside the discovered scope'
     assert.throws(() => execFileSync(process.execPath, [`${projectRoot}/bin/report-browser.cjs`], {encoding: 'utf8', stdio: 'pipe'}),
         error => error.status !== 0 && error.stderr.toString().includes(`Browser coverage outside the discovered scope: ${file}`));
 });
+
+test('template scripts appear only in template coverage and unvisited JS files retain zeros', t => {
+    const {base, write} = fixture(t);
+    const file = `${base}/view/frontend/templates/example.phtml`;
+    write(`src/${file}`, '<script>window.one = true;</script>\n<script>function unvisited() { window.two = true; }</script>');
+    fs.writeFileSync('coverage.config.json', JSON.stringify({javascript: {libraries: [`${base}/view/frontend/web/js/loaded.js`]}}));
+    prepare({themeRoots: []});
+    const hits = {};
+    const context = {window: {__mtcTemplateHit(id, statement) {const counters = hits[id] ||= {}; counters[statement] = (counters[statement] || 0) + 1;}}};
+    for (const match of fs.readFileSync(`.runtime/${file}`, 'utf8').matchAll(/<script>([\s\S]*?)<\/script>/g)) vm.runInNewContext(match[1], context);
+    assert.equal(context.window.__coverage__, undefined);
+    write('coverage/raw/templates/script.mtc', JSON.stringify({schemaVersion: 2, recordId: 'script', ids: [], hits}));
+    execFileSync(process.execPath, [`${projectRoot}/bin/report-browser.cjs`], {encoding: 'utf8'});
+    const summary = JSON.parse(fs.readFileSync('coverage/js/coverage-summary.json'));
+    assert.ok(Object.keys(summary).every(key => key === 'total' || key.endsWith('.js')));
+    const template = JSON.parse(fs.readFileSync('coverage/templates/coverage-summary.json')).templates.find(entry => entry.path === file);
+    assert.equal(template.statementSummary.total, 2);
+    assert.equal(template.statementSummary.covered, 1);
+    assert.equal(template.functionSummary.total, 1);
+    assert.equal(template.functionSummary.covered, 0);
+    const report = JSON.parse(fs.readFileSync('coverage/javascript-summary.json'));
+    assert.equal(report.groups.application.statements.total, 1);
+    assert.equal(report.groups.libraries.statements.total, 1);
+    assert.equal(report.groups.all.statements.covered, 0);
+    assert.equal(report.inline, undefined);
+});
+
+test('required runtime assets must execute and stale counter maps are rejected', t => {
+    const {base} = fixture(t);
+    const file = `${base}/view/frontend/web/js/loaded.js`;
+    fs.writeFileSync('coverage.config.json', JSON.stringify({javascript: {requiredExecuted: [file]}}));
+    prepare({themeRoots: []});
+    assert.throws(() => execFileSync(process.execPath, [`${projectRoot}/bin/report-browser.cjs`], {stdio: 'pipe'}), error => error.stderr.toString().includes('did not execute'));
+    const raw = coverage(`src/${file}`);
+    fs.mkdirSync('.nyc_output', {recursive: true});
+    fs.writeFileSync('.nyc_output/out.json', JSON.stringify({[raw.path]: raw}));
+    assert.throws(() => execFileSync(process.execPath, [`${projectRoot}/bin/report-browser.cjs`], {stdio: 'pipe'}), error => error.stderr.toString().includes('instrumentation is stale'));
+});
+
+test('rebuilding a Playwright report does not count its generated aggregate twice', t => {
+    const {base} = fixture(t);
+    const run = JSON.parse(fs.readFileSync('coverage/run.json'));
+    run.runner = 'playwright';
+    fs.writeFileSync('coverage/run.json', JSON.stringify(run));
+    const context = {window: {}};
+    vm.runInNewContext(fs.readFileSync(`.runtime/${base}/view/frontend/web/js/loaded.js`, 'utf8'), context);
+    fs.writeFileSync('.nyc_output/playwright-example.json', JSON.stringify(context.window.__coverage__));
+    const report = () => execFileSync(process.execPath, [`${projectRoot}/bin/report-browser.cjs`], {stdio: 'pipe'});
+    report();
+    const first = fs.readFileSync('coverage/js/coverage-final.json', 'utf8');
+    report();
+    assert.equal(fs.readFileSync('coverage/js/coverage-final.json', 'utf8'), first);
+});

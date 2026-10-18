@@ -27,6 +27,17 @@ function workspace(t) {
     return root;
 }
 
+test('explicit vendor roots support selected Composer themes and modules without including unrelated packages', t => {
+    workspace(t);
+    for (const root of ['vendor/acme/theme', 'vendor/acme/module/src', 'vendor/other/unused']) fs.mkdirSync(`src/${root}`, {recursive: true});
+    fs.writeFileSync('src/vendor/acme/theme/theme.xml', '<theme/>');
+    fs.writeFileSync('coverage.config.json', JSON.stringify({vendorRoots: ['vendor/acme/theme', 'vendor/acme/module/src']}));
+    assert.deepEqual(withThemeRoots(discover(), ['vendor/acme/theme']).roots, ['vendor/acme/module/src', 'vendor/acme/theme']);
+    assert.deepEqual(withThemeRoots(discover(), []).roots, ['vendor/acme/module/src']);
+    fs.writeFileSync('coverage.config.json', JSON.stringify({vendorRoots: ['vendor/acme/../../outside']}));
+    assert.throws(() => discover(), /Invalid/);
+});
+
 test('copied namespaces and both theme areas are discovered without the demonstration module', t => {
     const root = workspace(t);
     fs.cpSync(path.join(__dirname, 'fixtures/todo/module'), `${root}/src/app/code/Vitalii/TodoList`, {recursive: true});

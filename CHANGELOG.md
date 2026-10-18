@@ -1,5 +1,14 @@
 # Release notes
 
+## Unreleased
+
+- Updated Magento template coverage to 1.3.0. HTML/PHTML bindings, template expressions and inline scripts now share the template report, with script functions and branches mapped to original source lines. PHP executable lines remain in the PHP report.
+- JavaScript reports contain whole `.js` files and use statement percentages, with separate application and bundled-library views.
+- Added optional vendor coverage roots and explicit JavaScript distribution selection in `coverage.config.json`, including a Hyvä example and checks for required runtime assets.
+- Rebuilding Playwright reports no longer counts previously merged hits twice. Stale JavaScript instrumentation is rejected.
+
+After updating, rerun `./install.sh` with your selected theme and runner flags, then `./bin/run-coverage` to regenerate instrumentation and reports. Remove the retired `javascript.inline` option from existing coverage configurations.
+
 ## 1.1.0 — 2026-10-17
 
 - Added four exclusive installation modes: Luma/Cypress by default, `--hyva` for Hyvä, `--playwright` for Playwright, or both flags together.

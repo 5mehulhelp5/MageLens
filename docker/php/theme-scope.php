@@ -13,10 +13,12 @@ foreach ($om->get(Magento\Store\Model\StoreManagerInterface::class)->getStores()
     }
 }
 $roots = [];
+$configuredRoots = is_file('/application/project.json') ? json_decode(file_get_contents('/application/project.json'), true, flags: JSON_THROW_ON_ERROR)['roots'] : [];
 foreach ($themes as $theme) {
     while ($theme) {
         $directory = $registrar->getPath(Magento\Framework\Component\ComponentRegistrar::THEME, $theme->getFullPath());
-        if ($directory && str_starts_with($directory, BP . '/app/design/')) {
+        if ($directory && (str_starts_with($directory, BP . '/app/design/')
+            || in_array(substr($directory, strlen(BP) + 1), $configuredRoots, true))) {
             $roots[] = substr($directory, strlen(BP) + 1);
         }
         $theme = $theme->getParentTheme();

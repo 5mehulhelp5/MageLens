@@ -17,6 +17,8 @@ function syncDependencies(root, env = process.env, execute = execFileSync) {
         '@vitaliiboiko/magento-template-coverage': env.TEMPLATE_COVERAGE_VERSION,
         'istanbul-lib-coverage': env.ISTANBUL_LIB_COVERAGE_VERSION,
         'istanbul-lib-instrument': env.ISTANBUL_LIB_INSTRUMENT_VERSION,
+        'istanbul-lib-report': env.ISTANBUL_LIB_REPORT_VERSION,
+        'istanbul-reports': env.ISTANBUL_REPORTS_VERSION,
         nyc: env.NYC_VERSION
     };
     for (const [name, version] of Object.entries(requested)) {

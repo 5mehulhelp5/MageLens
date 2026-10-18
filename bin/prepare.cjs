@@ -2,7 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {createHash, randomBytes} = require('node:crypto');
 const {setBadgeSection} = require('./badges.cjs');
-const {discover, files, writeRuntime, writeChanged, nginxConfig, withThemeRoots, isCoverageExcluded} = require('./project.cjs');
+const {discover, files, writeRuntime, writeChanged, nginxConfig, withThemeRoots, isCoverageExcluded, readCoverageConfig} = require('./project.cjs');
+const {createJavascriptScope} = require('./javascript-scope.cjs');
 const digest = value => createHash('sha256').update(value).digest('hex');
 const browserFile = file => /\.(js|html|phtml)$/.test(file) && !isCoverageExcluded(file);
 
@@ -26,15 +27,16 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     const before = runtimeHashes(discovered.roots);
     const scoped = file => project.roots.some(root => file.startsWith(`src/${root}/`));
     const selectedBrowser = Object.keys(inputs).filter(file => scoped(file) && browserFile(file));
+    const javascriptScope = createJavascriptScope(Object.keys(inputs).filter(scoped));
     const cachePath = '.runtime/instrumentation.json';
     const cache = fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath)) : null;
-    const signature = digest(JSON.stringify({roots: project.roots,
+    const signature = digest(JSON.stringify({roots: project.roots, config: readCoverageConfig(),
         sources: selectedBrowser.map(file => [file, inputs[file]]),
-        tools: [__filename, require.resolve('./project.cjs'), 'package-lock.json',
+        tools: [__filename, require.resolve('./project.cjs'), require.resolve('./javascript-scope.cjs'), 'package-lock.json',
             ...files(path.dirname(require.resolve('@vitaliiboiko/magento-template-coverage'))).filter(file => file.endsWith('.js'))
         ].map(file => digest(fs.readFileSync(file)))}));
     const reuse = !plain && cache?.signature === signature
-        && fs.existsSync('.runtime/template-manifest.json') && fs.existsSync('.runtime/js-baseline.json')
+        && fs.existsSync('.runtime/template-manifest.json') && fs.existsSync('.runtime/js-baseline.json') && fs.existsSync('.runtime/javascript-scope.json')
         && selectedBrowser.every(file => before[file] === cache.outputs[file]);
     if (!plain && !runtimeOnly && cache && JSON.stringify(cache.mountRoots) !== JSON.stringify(discovered.roots)) {
         throw new Error('Source mount directories changed. Run ./install.sh before running coverage.');
@@ -66,7 +68,8 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
         instrument({source: 'src', manifest, mappings: Object.fromEntries(project.roots.map(root => [root, `.runtime/${root}`]))});
         fs.writeFileSync('.runtime/template-manifest.json', JSON.stringify(manifest, null, 2));
         const baseline = {};
-        for (const file of selectedBrowser.filter(file => file.endsWith('.js'))) {
+        for (const entry of javascriptScope.included) {
+            const file = `src/${entry.path}`;
             const instrumenter = createInstrumenter({compact: false, preserveComments: true,
                 coverageGlobalScope: 'window', coverageGlobalScopeFunc: false});
             const instrumented = instrumenter.instrumentSync(fs.readFileSync(file, 'utf8'), path.resolve(file));
@@ -74,6 +77,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
             baseline[path.resolve(file)] = instrumenter.lastFileCoverage();
         }
         fs.writeFileSync('.runtime/js-baseline.json', JSON.stringify(baseline));
+        fs.writeFileSync('.runtime/javascript-scope.json', JSON.stringify(javascriptScope, null, 2));
     }
     const after = runtimeHashes(discovered.roots);
     fs.writeFileSync(cachePath, JSON.stringify({signature, mountRoots: discovered.roots,
@@ -90,6 +94,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     fs.mkdirSync(`coverage/raw/php/${run.id}`, {recursive: true, mode: 0o777});
     fs.chmodSync(`coverage/raw/php/${run.id}`, 0o777);
     fs.writeFileSync('coverage/run.json', JSON.stringify(run, null, 2));
+    fs.writeFileSync('coverage/javascript-scope.json', JSON.stringify({run: run.id, ...JSON.parse(fs.readFileSync('.runtime/javascript-scope.json'))}, null, 2));
     fs.copyFileSync('.runtime/template-manifest.json', 'coverage/template-manifest.json');
     setBadgeSection('Coverage has not completed for the current run.');
     console.log(`Prepared fresh coverage run ${run.id}.`);

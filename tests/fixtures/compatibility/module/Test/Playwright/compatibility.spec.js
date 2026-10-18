@@ -1,6 +1,7 @@
 const {test, expect} = require('../../../../../../../playwright/support.cjs');
 test('collects real PHP, JavaScript and template execution', async ({page}) => {
     await page.goto('/coverageprobe/');
+    await expect(page.locator('[data-cy="inline-probe"]')).toHaveText('inline-ready');
     await expect(page.locator('[data-cy="probe-count"]')).toHaveText('0');
     await page.locator('[data-cy="probe-increment"]').click();
     await expect(page.locator('[data-cy="probe-count"]')).toHaveText('1');
@@ -15,6 +16,7 @@ test('collects real PHP, JavaScript and template execution', async ({page}) => {
 });
 test('starts the next test with fresh state', async ({page}) => {
     await page.goto('/coverageprobe/');
+    await expect(page.locator('[data-cy="inline-probe"]')).toHaveText('inline-ready');
     await expect(page.locator('[data-cy="probe-count"]')).toHaveText('0');
     await expect(page.getByRole('textbox', {name: 'Probe name'})).toHaveValue('initial');
 });

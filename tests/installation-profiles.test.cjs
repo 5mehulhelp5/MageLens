@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {syncDependencies} = require('../bin/sync-dependencies.cjs');
 const versions = {CYPRESS_VERSION: '16.2.0', PLAYWRIGHT_VERSION: '1.64.1',
+    ISTANBUL_LIB_REPORT_VERSION: '3.0.1', ISTANBUL_REPORTS_VERSION: '3.2.0',
     TEMPLATE_COVERAGE_VERSION: '1.1.2', CYPRESS_CODE_COVERAGE_VERSION: '4.0.3',
     ISTANBUL_LIB_COVERAGE_VERSION: '3.2.2', ISTANBUL_LIB_INSTRUMENT_VERSION: '6.0.3', NYC_VERSION: '18.0.0'};
 

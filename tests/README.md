@@ -32,7 +32,7 @@ MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 
 The matrix creates **four independent installations**: Luma/Cypress, Hyvä/Cypress, Luma/Playwright, and Hyvä/Playwright. Each uses the installer with the published coverage packages from npm. Checks verify the active theme, selected runner, absence of the other runner's packages and tooling, and coverage generation with `./bin/run-coverage`. Reports are saved at `.runtime/e2e/<project>/<runner>/coverage/index.html`; your existing Magento installation stays untouched.
 
-All four combinations check input updates, loops, navigation, and form submissions against Magento. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Original source files and PHP line numbers must remain unchanged.
+All four combinations check input updates, loops, navigation, and form submissions against Magento. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Inline PHTML scripts must execute normally and appear only in template coverage, with called functions, unused functions and both branch outcomes reported. Original source files and PHP line numbers must remain unchanged.
 
 Hyvä tests use the installer-selected default theme, with package versions pinned in [hyva-packages.json](../docker/php/hyva-packages.json). Playwright tests include the elgentos guest fixture. Hyvä Checkout, the restricted Alpine CSP evaluator, and the upstream elgentos checkout suite are outside these checks.
 
@@ -53,7 +53,7 @@ To test unpublished library changes, pack a sibling `magento-template-coverage` 
 
 ```bash
 (cd ../magento-template-coverage && npm pack --ignore-scripts --pack-destination /tmp)
-MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.2.0.tgz \
+MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.3.0.tgz \
 MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 ```
 

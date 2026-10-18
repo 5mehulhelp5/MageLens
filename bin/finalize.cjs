@@ -22,8 +22,8 @@ assert.equal(php.run, run.id);
 assert.ok(php.requests.length > 0, 'No current-run PHP requests were collected');
 if (php.collection === 'manifest') assert.ok(php.requests.every(request => request.mode === 'hit-only'), 'Expected validated native hit-only exports');
 assert.equal(templates.schemaVersion, 2);
-assert.ok(templates.templates.every(template => template.path.endsWith('.html') || template.path.endsWith('.phtml') && template.kind === 'browser-phtml'), 'Only HTML and Alpine PHTML belong in browser-template coverage');
-for (const [covered, total] of [[php.covered, php.total], [js.total.lines.covered, js.total.lines.total], [templates.lines.covered, templates.lines.total]]) {
+assert.ok(templates.templates.every(template => template.path.endsWith('.html') || template.path.endsWith('.phtml') && template.kind === 'browser-phtml'), 'Only HTML and browser PHTML belong in template coverage');
+for (const [covered, total] of [[php.covered, php.total], [js.total.statements.covered, js.total.statements.total], [templates.lines.covered, templates.lines.total]]) {
     assert.ok(Number.isFinite(covered) && Number.isFinite(total) && covered >= 0 && covered <= total, 'Invalid coverage totals');
 }
 assert.deepEqual(sourceHashes(run.roots), run.sources, 'Original sources changed during instrumentation');
@@ -33,7 +33,7 @@ for (const type of ['php', 'js', 'templates']) {
 }
 const metrics = {
     php: {label: 'PHP lines', percent: php.percent},
-    js: {label: 'JavaScript lines', percent: js.total.lines.total ? js.total.lines.pct : 0},
+    js: {label: 'JavaScript statements', percent: js.total.statements.total ? js.total.statements.pct : 0},
     templates: {label: 'Template executable lines', percent: templates.lines.percent}
 };
 fs.mkdirSync('coverage/badges', {recursive: true});

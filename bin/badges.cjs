@@ -4,7 +4,7 @@ const START = '<!-- coverage-badges:start -->';
 const END = '<!-- coverage-badges:end -->';
 const icons = {
     php: {file: 'php', color: '#a3a7d5', label: 'PHP lines'},
-    js: {file: 'javascript', color: '#f7df1e', label: 'JavaScript lines'},
+    js: {file: 'javascript', color: '#f7df1e', label: 'JavaScript statements'},
     templates: {file: 'html5', color: '#e34f26', label: 'Template executable lines'},
     cypress: {file: 'cypress', color: '#69d3a7', label: 'Cypress'},
     playwright: {file: null, color: '#69d3a7', label: 'Playwright'}

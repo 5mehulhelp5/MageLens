@@ -1,0 +1,9 @@
+{
+  "vendorRoots": [],
+  "javascript": {
+    "metric": "statements",
+    "libraries": [],
+    "exclude": [],
+    "requiredExecuted": []
+  }
+}

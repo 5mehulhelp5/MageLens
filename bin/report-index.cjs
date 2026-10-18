@@ -11,10 +11,10 @@ function writeIndex({run, generatedAt, metrics, php, js, templates, tests}) {
     const reports = [
         {key: 'php', covered: php.covered, total: php.total, unit: 'lines',
             description: 'PHP and .phtml executed by Magento HTTP requests.'},
-        {key: 'js', covered: js.total.lines.covered, total: js.total.lines.total, unit: 'lines',
-            description: 'Instrumented JavaScript executed in the browser.'},
+        {key: 'js', covered: js.total.statements.covered, total: js.total.statements.total, unit: 'statements',
+            description: 'Whole .js files executed in the browser.'},
         {key: 'templates', covered: templates.lines.covered, total: templates.lines.total, unit: 'template lines',
-            description: `HTML template execution. DOM presence: ${templates.summary.covered}/${templates.summary.eligible} templates (${templates.summary.percent}%).`}
+            description: `HTML/PHTML bindings and inline script execution. DOM presence: ${templates.summary.covered}/${templates.summary.eligible} templates (${templates.summary.percent}%).`}
     ];
     const rows = reports.map(report => {
         const metric = metrics[report.key];
@@ -26,6 +26,9 @@ function writeIndex({run, generatedAt, metrics, php, js, templates, tests}) {
 <td><strong>${percent}%</strong><div class="track" aria-hidden="true"><span style="width:${percent}%"></span></div></td>
 </tr>`;
     }).join('\n');
+    const javascript = fs.existsSync('coverage/javascript-summary.json') ? JSON.parse(fs.readFileSync('coverage/javascript-summary.json')) : null;
+    const javascriptDetails = javascript ? `<p class="note">JavaScript reports: <a href="js-application/index.html">application</a> · <a href="js-libraries/index.html">bundled libraries</a>. <a href="javascript-summary.json">Group totals</a> · <a href="javascript-scope.json">Scope and exclusion reasons</a>.</p>` : '';
+    const templateDetails = templates.scripts ? `<p class="note">Template scripts: ${templates.scripts.instrumented} instrumented; ${templates.scripts.unsupported.length} unsupported; ${templates.scripts.generated.length} PHP-generated fragments without a static map. <a href="templates/index.html">Template report</a> · <a href="templates/coverage-summary.json">Template coverage details</a>.</p>` : '';
     fs.writeFileSync('coverage/index.html', `<!doctype html>
 <html lang="en">
 <head>
@@ -73,7 +76,9 @@ code { overflow-wrap: anywhere; }
 <tbody>${rows}</tbody>
 </table>
 </div>
-<p class="note">PHP and JavaScript percentages measure executable lines. Template executable lines measure the starting source lines of evaluated bindings and template expressions. The template report also shows individual statements and separate DOM presence. Static markup has no executable-line denominator; a Knockout event binding hit does not prove its handler ran. PHP <code>.phtml</code> files appear in the PHP report.</p>
+<p class="note">PHP measures executable lines; JavaScript measures statements so minified bundles do not distort the percentage. Template coverage measures bindings, template expressions and inline scripts in HTML/PHTML, mapped to their original source. Script functions, branches and DOM presence are reported separately. Unvisited eligible code remains in the denominator.</p>
+${javascriptDetails}
+${templateDetails}
 <footer>
 <p>Run <code>${escapeHtml(run.id)}</code><br>Generated <time datetime="${escapeHtml(generatedAt)}">${escapeHtml(generatedAt)}</time> · <a href="summary.json">Coverage data (JSON)</a></p>
 </footer>

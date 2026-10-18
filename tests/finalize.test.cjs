@@ -18,7 +18,7 @@ function reports(t, covered) {
     fs.writeFileSync(`${root}/coverage/.active-run`, 'fixture');
     json('coverage/run.json', {id: 'fixture', sources: {}});
     json('coverage/php/coverage-summary.json', {run: 'fixture', covered, total: 1, percent, requests: [{uri: '/customer/', method: 'GET'}]});
-    json('coverage/js/coverage-summary.json', {total: {lines: {covered, total: 1, pct: percent}}});
+    json('coverage/js/coverage-summary.json', {total: {statements: {covered, total: 1, pct: percent}}});
     json('coverage/templates/coverage-summary.json', {schemaVersion: 2, lines: {covered, total: 1, percent}, templates: [], summary: {covered, eligible: 1, percent}});
     json('coverage/cypress-results.json', {run: 'fixture', totalTests: 1, totalPassed: 1, totalFailed: 0, totalPending: 0, totalSkipped: 0});
     return {root, run: () => spawnSync(process.execPath, [path.join(__dirname, '../bin/finalize.cjs')], {cwd: root, encoding: 'utf8'})};

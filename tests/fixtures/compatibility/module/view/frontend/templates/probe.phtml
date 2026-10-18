@@ -2,3 +2,20 @@
 $config = ['Magento_Ui/js/core/app' => ['components' => ['coverageProbe' => ['component' => 'MageLens_Compatibility/js/probe-luma', 'url' => $block->getUrl('coverageprobe/index/save'), 'formKey' => $block->getFormKey()]]]];
 ?>
 <div id="coverage-probe" data-bind="scope: 'coverageProbe'" data-mage-init="<?= htmlspecialchars(json_encode($config), ENT_QUOTES) ?>"><!-- ko template: getTemplate() --><!-- /ko --></div>
+<output data-cy="inline-probe"></output>
+<script>
+(function () {
+    const message = <?= json_encode('inline-ready') ?>;
+    function renderInlineProbe(visible) {
+        if (visible) {
+            document.querySelector('[data-cy="inline-probe"]').textContent = message;
+        } else {
+            document.querySelector('[data-cy="inline-probe"]').textContent = 'unused branch';
+        }
+    }
+    function unusedInlineProbe() {
+        return 'unused function';
+    }
+    renderInlineProbe(true);
+})();
+</script>

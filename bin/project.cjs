@@ -1,6 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+function readCoverageConfig() {
+    return fs.existsSync('coverage.config.json') ? JSON.parse(fs.readFileSync('coverage.config.json', 'utf8')) : {};
+}
+
 function directories(directory) {
     if (!fs.existsSync(directory)) return [];
     return fs.readdirSync(directory, {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name)).filter(entry => {
@@ -24,6 +28,16 @@ function discover(source = 'src') {
         if (!moduleName) throw new Error(`Missing Magento module name: ${definition}`);
         return [{name: moduleName, root: directory}];
     }));
+    for (const root of readCoverageConfig().vendorRoots || []) {
+        if (typeof root !== 'string' || !/^vendor\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(root)
+            || root.split('/').some(part => part === '.' || part === '..') || roots.some(existing => root === existing || root.startsWith(existing + '/') || existing.startsWith(root + '/'))) {
+            throw new Error(`Invalid or overlapping vendor coverage root: ${root}`);
+        }
+        if (fs.existsSync(`${source}/${root}`)) {
+            if (fs.realpathSync(`${source}/${root}`) !== path.resolve(source, root)) throw new Error(`Symlinked source is unsupported: ${root}`);
+            roots.push(root);
+        }
+    }
     return {roots, modules};
 }
 
@@ -34,7 +48,7 @@ function specPatterns(runner = 'cypress') {
 
 function isCoverageExcluded(file) {
     const normalized = file.replaceAll('\\', '/');
-    return /(?:^|\/)(?:Test|Setup)\//.test(normalized)
+    return /(?:^|\/)(?:Test|Setup|node_modules|tailwind)\//.test(normalized)
         || /\.[cm]?[jt]s$/.test(normalized) && (/\.(cy|spec)\.[cm]?[jt]s$/.test(normalized)
         || /(?:^|\/)(cypress|playwright)\//.test(normalized));
 }
@@ -42,12 +56,12 @@ function isCoverageExcluded(file) {
 function withThemeRoots(project, themeRoots, source = 'src') {
     if (!Array.isArray(themeRoots)) throw new Error('Expected selected theme directories');
     for (const root of themeRoots) {
-        if (typeof root !== 'string' || !/^app\/design\/(frontend|adminhtml)\/[^/.][^/]*\/[^/.][^/]*$/.test(root)
+        if (typeof root !== 'string' || (!/^app\/design\/(frontend|adminhtml)\/[^/.][^/]*\/[^/.][^/]*$/.test(root) && !project.roots.includes(root))
             || !fs.existsSync(`${source}/${root}/theme.xml`)) {
             throw new Error(`Invalid selected theme directory: ${root}`);
         }
     }
-    return {...project, roots: [...project.roots.filter(root => root === 'app/code'), ...new Set(themeRoots.sort())]};
+    return {...project, roots: [...new Set([...project.roots.filter(root => root === 'app/code' || root.startsWith('vendor/') && !fs.existsSync(`${source}/${root}/theme.xml`)), ...themeRoots.sort()])]};
 }
 
 function files(root) {
@@ -65,7 +79,7 @@ function writeRuntime(project, mountRoots = project.roots) {
     // Keep PHP's startup filter stable. Each request exports only the selected
     // files, so changing themes does not require restarting PHP-FPM.
     const allowed = mountRoots.map(root => escape(`/var/www/html/${root}/`)).join('|') || '(?!)';
-    writeChanged('.runtime/coverage.ini', `pcov.directory=/var/www/html/app\npcov.exclude="~^(?!(?:${allowed}))|/(?:Test|Setup)/~"\n`);
+    writeChanged('.runtime/coverage.ini', `pcov.directory=/var/www/html\npcov.exclude="~^(?!(?:${allowed}))|/(?:Test|Setup|node_modules|tailwind)/~"\n`);
     const mount = (source, target) => ({type: 'bind', source, target, read_only: true});
     const sources = mountRoots.map(root => mount(`./.runtime/${root}`, `/var/www/html/${root}`));
     // Magento publishes static assets as symlinks in developer mode. Nginx must
@@ -97,4 +111,4 @@ function nginxConfig(template, environment = process.env) {
     return ports.reduce((config, [key, value]) => config.replaceAll(`__${key}__`, String(Number(value))), template);
 }
 
-module.exports = {discover, files, writeRuntime, writeChanged, nginxConfig, specPatterns, withThemeRoots, isCoverageExcluded};
+module.exports = {discover, files, writeRuntime, writeChanged, nginxConfig, specPatterns, withThemeRoots, isCoverageExcluded, readCoverageConfig};

@@ -157,6 +157,26 @@ test('missing or damaged instrumented copies are rebuilt', t => {
     assert.equal(fs.readFileSync(script, 'utf8'), expected);
 });
 
+test('template package owns PHTML bindings and scripts, while JS scope contains only JS files', t => {
+    const {base, write} = fixture(t);
+    const file = `${base}/view/frontend/templates/example.phtml`;
+    const source = '<div x-data="{open: false}" x-show="open">Hello</div>\n<script>window.inline = 1;</script>\n<script>window.second = 2;</script>';
+    write(`src/${file}`, source);
+    prepare({themeRoots: []});
+    const original = fs.readFileSync(`.runtime/${file}`, 'utf8');
+    const baseline = read('.runtime/js-baseline.json');
+    assert.ok(Object.keys(baseline).every(key => key.endsWith('.js')));
+    assert.ok(read('coverage/template-manifest.json').templates.some(entry => entry.path === file));
+    assert.equal(read('coverage/template-manifest.json').templates.find(entry => entry.path === file).scripts.length, 2);
+    assert.equal(original.split('\n').length, source.split('\n').length);
+    assert.equal(fs.readFileSync(`src/${file}`, 'utf8'), source);
+    prepare({themeRoots: []});
+    assert.equal(fs.readFileSync(`.runtime/${file}`, 'utf8'), original);
+    assert.equal(read('coverage/template-manifest.json').templates.find(entry => entry.path === file).scripts.length, 2);
+    assert.equal(read('coverage/template-manifest.json').templates.find(entry => entry.path === file).statements.length, 4);
+    assert.doesNotMatch(fs.readFileSync(`.runtime/${file}`, 'utf8'), /cov_\w+/);
+});
+
 test('nginx uses the selected ports and rejects collisions and invalid ports', () => {
     const template = fs.readFileSync(`${projectRoot}/docker/nginx.conf`, 'utf8');
     const config = nginxConfig(template, {APPLICATION_PORT: '8088', APPLICATION_HTTPS_PORT: '8443', CYPRESS_VIEW_PORT: '6090'});

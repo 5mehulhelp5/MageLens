@@ -9,7 +9,7 @@ Coverage includes supported files in:
 - `src/app/code/`
 - The selected frontend and Admin themes under `src/app/design/`, including their local parent themes.
 
-PHP and `.phtml` files appear in the PHP report, application `.js` files in the JavaScript report, and `.html` files plus supported Alpine directives in `.phtml` files in the template report. Directories named `Test` or `Setup` are excluded from collection, instrumentation, and all coverage reports. Cypress and Playwright specs (`*.cy.js`, `*.spec.js`, `*.spec.ts`) and their support directories are also excluded from instrumentation and JavaScript reports. Unexecuted application files within this scope remain uncovered. Unrelated inactive themes and Composer packages under `src/vendor/` are excluded. Each run resolves the configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
+PHP executable lines, including PHP in `.phtml`, appear in the PHP report. Whole `.js` files appear in the JavaScript report. HTML/PHTML bindings, Knockout and jQuery templates, Hyvä/Alpine expressions and inline scripts appear in the template report. `Test`, `Setup`, `node_modules`, `tailwind`, browser specs and browser support directories are excluded. Unexecuted eligible files remain uncovered. Vendor packages are excluded unless opted in with `coverage.config.json`; inactive themes remain excluded. Each run resolves configured themes for active stores and Admin before instrumenting sources, so changing the selected theme updates all three reports.
 
 Coverage runs use disposable source copies and verify that your originals remain unchanged. Symlinked source files and directories are unsupported.
 
@@ -60,17 +60,41 @@ Every run records fresh execution. Cached collection metadata is refreshed autom
 
 ## JavaScript coverage
 
-`istanbul-lib-instrument` adds execution counters to application `.js` files under the source directories, excluding browser specs and support directories. Cypress collects counters through `@cypress/code-coverage`; Playwright collects snapshots from each browser context. Both use nyc to generate reports. Cypress records from older instrumentation are also removed before reporting.
+`istanbul-lib-instrument` adds execution counters to whole application `.js` files, excluding browser specs and support directories. Cypress collects counters through `@cypress/code-coverage`; Playwright collects snapshots from each browser context. Both use the same Istanbul reporting pipeline. Stale counter maps and unexpected source paths fail reporting.
+
+The JavaScript headline and badge measure **statements**, avoiding the misleading line totals of minified libraries. The main report includes every eligible file, including scripts that never load. Separate application and bundled-library reports share the same counters. HTML/PHTML files and their inline scripts belong exclusively to the template report.
+
+Configure `coverage.config.json` independently from the package versions in `dependencies.yaml`:
+
+```json
+{
+  "vendorRoots": ["vendor/acme/theme", "vendor/acme/module/src"],
+  "javascript": {
+    "metric": "statements",
+    "libraries": ["vendor/acme/theme/web/js/library.min.js"],
+    "exclude": [{
+      "path": "vendor/acme/theme/web/js/library.js",
+      "replacement": "vendor/acme/theme/web/js/library.min.js",
+      "reason": "Theme templates load the minified distribution."
+    }],
+    "requiredExecuted": ["vendor/acme/theme/web/js/library.min.js"]
+  }
+}
+```
+
+Paths are relative to `src/`. Vendor packages are opt-in; configured Composer themes participate only when selected as an active theme or ancestor. Exclusions require reasons and replacements must remain included. Missing configured JavaScript assets fail preparation, and required runtime assets must actually execute. Do not exclude unused application features simply to raise the percentage. `Test`, `Setup`, `node_modules`, and `tailwind` directories contain no eligible runtime coverage. The complete inventory and exclusion reasons are saved in `coverage/javascript-scope.json`. Remove `javascript.inline` from older configurations; template script coverage is provided by the template package.
+
+[examples/hyva.coverage.json](../examples/hyva.coverage.json) provides a configuration for Hyvä 1.5.3, including regular Alpine 3 and its minified runtime build. Copy it to `coverage.config.json` before installation to opt into those vendor roots. Review the asset paths when changing Hyvä versions or switching to the CSP evaluator; exclusions are configuration choices, not automatic detection.
 
 Files that are never loaded retain zero-hit counters from instrumentation. The report combines these with execution observed during the current suite.
 
 ## HTML template coverage
 
-[@vitaliiboiko/magento-template-coverage](https://github.com/VitaliyBoyko/magento-template-coverage) measures `.html` templates and supported Alpine directives in `.phtml` files. The report contains directory totals and per-file source views.
+[@vitaliiboiko/magento-template-coverage](https://github.com/VitaliyBoyko/magento-template-coverage) measures HTML/PHTML template bindings, engine expressions and inline scripts. This includes Knockout, jQuery templates, Magento literals and regular Hyvä/Alpine directives. The report contains directory totals and per-file source views.
 
-Hyvä coverage supports the regular Alpine 3 evaluator. The restricted Alpine CSP evaluator, inline JavaScript bodies in PHTML, and directives generated entirely by PHP are outside template execution coverage.
+Hyvä template coverage supports the regular Alpine 3 evaluator. The restricted Alpine CSP evaluator and directives generated entirely by PHP are outside template execution coverage. Inline JavaScript bodies are measured in the same template source report, including scripts executed after a template fragment is inserted. Cached and unused templates retain zero execution hits.
 
-The template badge measures **executable template lines**: starting lines of bindings and expressions that execute. Static markup has no execution denominator. A Knockout event binding hit records binding evaluation; it does not prove that its handler ran.
+The template badge measures **executable template lines**: starting lines of bindings, template expressions and inline script statements that execute. Static markup has no execution denominator. Inline script functions and branches have separate counters. The template report lists unsupported scripts and PHP-generated JavaScript without static source mappings; these gaps are never treated as covered. A Knockout event binding hit records binding evaluation; it does not prove that its handler ran.
 
 **DOM presence** is reported separately. Hidden elements count as present, while fetching HTML alone does not. Templates with unsupported execution syntax remain visible with an explanation of the available DOM coverage.
 

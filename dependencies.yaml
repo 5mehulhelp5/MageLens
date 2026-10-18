@@ -1,4 +1,5 @@
 # MageLens installation inputs. Edit this file, then run ./install.sh.
+# Coverage scope and JavaScript build selection live in coverage.config.json.
 # Use a flat mapping of quoted strings; comments and blank lines are supported.
 # Release versions select matching Git tags (PCOV uses a v-prefixed tag).
 MAGENTO_VERSION: "2.4.8-p5"
@@ -9,10 +10,12 @@ PIE_VERSION: "1.5.2"
 CYPRESS_VERSION: "16.2.0"
 PLAYWRIGHT_VERSION: "1.64.1"
 HYVA_VERSION: "1.5.3"
-TEMPLATE_COVERAGE_VERSION: "1.2.0"
+TEMPLATE_COVERAGE_VERSION: "1.3.0"
 CYPRESS_CODE_COVERAGE_VERSION: "4.0.3"
 ISTANBUL_LIB_COVERAGE_VERSION: "3.2.2"
 ISTANBUL_LIB_INSTRUMENT_VERSION: "6.0.3"
+ISTANBUL_LIB_REPORT_VERSION: "3.0.1"
+ISTANBUL_REPORTS_VERSION: "3.2.0"
 NYC_VERSION: "18.0.0"
 
 # Node and browser system dependencies for the Cypress runner.

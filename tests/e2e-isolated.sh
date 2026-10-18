@@ -68,7 +68,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-for file in bin docker patches cypress playwright tests assets install.sh .dockerignore compose.yaml dependencies.yaml package.json package-lock.json cypress.config.cjs playwright.config.cjs README.md; do
+for file in bin docker patches cypress playwright tests assets install.sh .dockerignore compose.yaml dependencies.yaml coverage.config.json package.json package-lock.json cypress.config.cjs playwright.config.cjs README.md; do
     cp -a "$file" "$scratch/"
 done
 mkdir -p "$scratch/docker/php/e2e"

@@ -12,3 +12,20 @@
 </template>
 <button hidden data-cy="probe-unused" @click="unused()">Unused action</button>
 </section>
+<output data-cy="inline-probe"></output>
+<script>
+(function () {
+    const message = <?= json_encode('inline-ready') ?>;
+    function renderInlineProbe(visible) {
+        if (visible) {
+            document.querySelector('[data-cy="inline-probe"]').textContent = message;
+        } else {
+            document.querySelector('[data-cy="inline-probe"]').textContent = 'unused branch';
+        }
+    }
+    function unusedInlineProbe() {
+        return 'unused function';
+    }
+    renderInlineProbe(true);
+})();
+</script>

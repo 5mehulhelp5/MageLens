@@ -20,4 +20,14 @@ if (theme === 'hyva') {
     const unused = entry.statements.find(statement => statement.binding === '@click' && entry.source.split('\n')[statement.start.line - 1].includes('probe-unused'));
     assert.equal(unused.hits, 0, 'Unclicked Alpine events must stay uncovered');
 }
-console.log(`Verified ${theme} PHP, JavaScript and template execution, including untouched branches and templates.`);
+const javascript = read('coverage/js/coverage-final.json');
+assert.ok(Object.keys(javascript).every(file => file.endsWith('.js')), 'Only whole .js files belong in JavaScript coverage');
+const inlinePath = theme === 'hyva' ? 'templates/probe-hyva.phtml' : 'templates/probe.phtml';
+const inline = templates.templates.find(entry => entry.path.endsWith(inlinePath));
+assert.ok(inline?.scripts.some(script => script.status === 'instrumented'), 'Missing inline template instrumentation');
+assert.ok(inline.statements.some(statement => statement.id.startsWith('script:') && statement.hits > 0), 'Missing executed inline statements');
+assert.ok(inline.statements.some(statement => statement.id.startsWith('script:') && statement.hits === 0), 'Unused inline statements must stay uncovered');
+assert.ok(inline.functions.find(fn => fn.name === 'renderInlineProbe')?.hits > 0, 'Called inline function must be covered');
+assert.equal(inline.functions.find(fn => fn.name === 'unusedInlineProbe')?.hits, 0, 'Unused inline function must stay uncovered');
+assert.ok(inline.branches.some(branch => branch.hits > 0) && inline.branches.some(branch => branch.hits === 0), 'Inline branches need both covered and uncovered outcomes');
+console.log(`Verified ${theme} PHP, whole-file JavaScript and template execution, including inline scripts and untouched branches and templates.`);

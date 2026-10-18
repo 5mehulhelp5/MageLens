@@ -23,7 +23,7 @@ function applicationIdentity(): array
     sort($sources, SORT_STRING);
     $scope = array_values(array_filter($sources,
         static fn(string $file): bool => (bool) preg_match('/\.(php|phtml)$/', $file)
-            && !preg_match('~/(?:Test|Setup)/~', $file)));
+            && !preg_match('~/(?:Test|Setup|node_modules|tailwind)/~', $file)));
     $digest = static fn(array $files): string => hash('sha256', json_encode(pcov_manifest_source_inventory($files), JSON_THROW_ON_ERROR));
     return [
         'scope' => pcov_manifest_source_inventory($scope),

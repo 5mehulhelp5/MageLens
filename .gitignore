@@ -23,6 +23,7 @@
 !/bin/install
 !/bin/prepare.cjs
 !/bin/project.cjs
+!/bin/javascript-scope.cjs
 !/bin/report-browser.cjs
 !/bin/report-index.cjs
 !/bin/run-browser.cjs
