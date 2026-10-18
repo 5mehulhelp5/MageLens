@@ -7,8 +7,18 @@ window.probeRequest = async function (url, formKey, value) {
 };
 window.coverageProbe = function (url, formKey) {
     return {name: 'initial', count: 0, saved: '', open: false, items: ['one', 'two'],
+        neverLabel: 'never executed',
+        get nameModel() { return {get: () => this.name, set: value => {this.name = value;}}; },
+        init() { url = url || this.$el.dataset.saveUrl; formKey = formKey || this.$el.dataset.formKey; },
         increment() { this.count++; },
         async save() { this.saved = (await window.probeRequest(url, formKey, this.name)).message; },
         unused() { throw new Error('Unvisited method'); }
     };
 };
+
+document.addEventListener('alpine:init', () => Alpine.data('coverageProbe', () => window.coverageProbe()));
+
+// Run from a normally loaded application asset, outside DevTools evaluation.
+window.__magelensEvalBlocked = false;
+try { Function('return 42')(); }
+catch (error) { window.__magelensEvalBlocked = error.name === 'EvalError'; }

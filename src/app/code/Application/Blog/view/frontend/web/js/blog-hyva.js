@@ -3,7 +3,20 @@ window.applicationBlog = function (postsUrl) {
     return {
         posts: [], query: '', category: '', page: 1, pages: 1, total: 0,
         busy: true, message: '', expanded: null, favorites: [], favoriteNotice: '',
+        neverVisible: false,
+        get queryModel() { return {get: () => this.query, set: value => {this.query = value;}}; },
+        get categoryModel() { return {get: () => this.category, set: value => {this.category = value;}}; },
+        statusLabel() { return this.busy ? 'Loading…' : this.total + ' articles'; },
+        empty() { return !this.busy && !this.message && this.total === 0; },
+        expandedLabel() { return this.expanded === this.post.id ? 'true' : 'false'; },
+        favoriteLabel() { return this.favorites.includes(this.post.id) ? 'Unfavorite' : 'Favorite'; },
+        postExpanded() { return this.expanded === this.post.id; },
+        multiplePages() { return this.pages > 1; },
+        previousDisabled() { return this.busy || this.page <= 1; },
+        nextDisabled() { return this.busy || this.page >= this.pages; },
+        pageLabel() { return 'Page ' + this.page + ' of ' + this.pages; },
         init() {
+            postsUrl = postsUrl || this.$el.dataset.postsUrl;
             const params = new URLSearchParams(window.location.search);
             this.query = params.get('q') || '';
             this.category = params.get('category') || '';
@@ -43,8 +56,9 @@ window.applicationBlog = function (postsUrl) {
         },
         next() { if (this.page < this.pages) { this.page++; return this.loadPosts(); } },
         previous() { if (this.page > 1) { this.page--; return this.loadPosts(); } },
-        toggleDetails(post) { this.expanded = this.expanded === post.id ? null : post.id; },
-        toggleFavorite(post) {
+        toggleDetails() { const post = this.post; this.expanded = this.expanded === post.id ? null : post.id; },
+        toggleFavorite() {
+            const post = this.post;
             if (this.favorites.includes(post.id)) {
                 this.favorites = this.favorites.filter(id => id !== post.id);
                 this.favoriteNotice = '';
@@ -57,3 +71,5 @@ window.applicationBlog = function (postsUrl) {
         }
     };
 };
+
+document.addEventListener('alpine:init', () => Alpine.data('applicationBlog', () => window.applicationBlog()));

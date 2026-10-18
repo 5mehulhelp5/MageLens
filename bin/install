@@ -3,23 +3,32 @@ source "$(dirname "$0")/common"
 preflight
 command -v git >/dev/null || fail 'Install Git, then rerun ./install.sh.'
 container_only=0
+nocsp=0
 requested_domain=''
 export MAGELENS_THEME=luma MAGELENS_RUNNER=cypress
 for argument in "$@"; do
     case "$argument" in
         --container-only) container_only=1 ;;
         --hyva) MAGELENS_THEME=hyva ;;
+        --nocsp|-nocsp) nocsp=1 ;;
         --playwright) MAGELENS_RUNNER=playwright ;;
         --help|-h)
-            printf 'Usage: ./install.sh [--hyva] [--playwright] [--container-only] [domain]\nDefault: Luma and Cypress. --hyva selects Hyva; --playwright selects Playwright.\n'
+            printf 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]\nDefault: Luma and Cypress. --hyva selects Hyva CSP; --hyva --nocsp selects legacy Hyva; --playwright selects Playwright.\n'
             exit 0 ;;
-        -*) fail 'Usage: ./install.sh [--hyva] [--playwright] [--container-only] [domain]' ;;
+        -*) fail 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]' ;;
         *)
-            [[ -z "$requested_domain" ]] || fail 'Usage: ./install.sh [--hyva] [--playwright] [--container-only] [domain]'
+            [[ -z "$requested_domain" ]] || fail 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]'
             requested_domain=$argument ;;
     esac
 done
-if [[ "$MAGELENS_THEME" == hyva || "$MAGELENS_RUNNER" == playwright ]]; then
+if (( nocsp )); then
+    [[ "$MAGELENS_THEME" == hyva ]] || fail '--nocsp requires --hyva.'
+    MAGELENS_THEME=hyva-legacy
+fi
+if [[ "$MAGELENS_THEME" == hyva && "$TEMPLATE_COVERAGE_VERSION" == 1.[0-4].* && -z "${MAGELENS_TEMPLATE_COVERAGE_PACKAGE:-}" ]]; then
+    fail 'Hyva CSP requires template coverage 1.5 or newer. Update dependencies.yaml.'
+fi
+if [[ "$MAGELENS_THEME" == hyva* || "$MAGELENS_RUNNER" == playwright ]]; then
     [[ "$TEMPLATE_COVERAGE_VERSION" != 1.1.* && "$TEMPLATE_COVERAGE_VERSION" != 1.0.* || -n "${MAGELENS_TEMPLATE_COVERAGE_PACKAGE:-}" ]] \
         || fail 'Hyva and Playwright require template coverage 1.2 or newer. Update TEMPLATE_COVERAGE_VERSION in dependencies.yaml.'
 fi
@@ -90,7 +99,7 @@ fi
 dc stop -t 60 app phpfpm
 say 'Preparing local Magento source in src/ (preserving an existing installation)'
 dc run --rm --no-deps workspace
-if [[ "$MAGELENS_THEME" == hyva ]]; then
+if [[ "$MAGELENS_THEME" == hyva* ]]; then
     say "Installing Hyva $HYVA_VERSION"
     if ! dc run --rm --no-deps phpfpm php /application/docker/php/install-hyva.php --check; then
         dc run --rm --no-deps phpfpm php /application/docker/php/install-hyva.php

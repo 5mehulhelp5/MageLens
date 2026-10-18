@@ -8,7 +8,7 @@ export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
 MAGELENS_THEME=luma MAGELENS_RUNNER=cypress
 if [[ -f .runtime/install-profile ]]; then
     read -r MAGELENS_THEME MAGELENS_RUNNER extra < .runtime/install-profile
-    [[ "$MAGELENS_THEME" == luma || "$MAGELENS_THEME" == hyva ]] && [[ "$MAGELENS_RUNNER" == cypress || "$MAGELENS_RUNNER" == playwright ]] && [[ -z "${extra:-}" ]] \
+    [[ "$MAGELENS_THEME" == luma || "$MAGELENS_THEME" == hyva || "$MAGELENS_THEME" == hyva-legacy ]] && [[ "$MAGELENS_RUNNER" == cypress || "$MAGELENS_RUNNER" == playwright ]] && [[ -z "${extra:-}" ]] \
         || { printf 'Invalid .runtime/install-profile.\n' >&2; exit 1; }
 fi
 export MAGELENS_THEME MAGELENS_RUNNER

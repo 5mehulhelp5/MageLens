@@ -30,15 +30,15 @@ Run the matrix using the published dependency versions in `dependencies.yaml`:
 MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 ```
 
-The matrix creates **four independent installations**: Luma/Cypress, Hyvä/Cypress, Luma/Playwright, and Hyvä/Playwright. Each uses the installer with the published coverage packages from npm. Checks verify the active theme, selected runner, absence of the other runner's packages and tooling, and coverage generation with `./bin/run-coverage`. Reports are saved at `.runtime/e2e/<project>/<runner>/coverage/index.html`; your existing Magento installation stays untouched.
+The matrix creates **six independent installations**: Luma, Hyvä CSP and legacy Hyvä, each with Cypress and Playwright. Each uses the installer with the published coverage packages from npm. Checks verify the active theme, selected runner, absence of the other runner's packages and tooling, and coverage generation with `./bin/run-coverage`. Reports are saved at `.runtime/e2e/<project>/<runner>/coverage/index.html`; your existing Magento installation stays untouched.
 
-All four combinations check input updates, loops, navigation, and form submissions against Magento. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Inline PHTML scripts must execute normally and appear only in template coverage, with called functions, unused functions and both branch outcomes reported. PHP-rendered child scripts must link to their original template and keep unused child functions and branches uncovered. Original source files and PHP line numbers must remain unchanged.
+All six combinations check input updates, loops, navigation, and form submissions against Magento. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Inline PHTML scripts must execute normally and appear only in template coverage, with called functions, unused functions and both branch outcomes reported. PHP-rendered child scripts must link to their original template and keep unused child functions and branches uncovered. Original source files and PHP line numbers must remain unchanged.
 
-Hyvä tests use the installer-selected default theme, with package versions pinned in [hyva-packages.json](../docker/php/hyva-packages.json). Playwright tests include the elgentos guest fixture. Hyvä Checkout, the restricted Alpine CSP evaluator, and the upstream elgentos checkout suite are outside these checks.
+Hyvä tests use the installer-selected default theme, with package versions pinned in [hyva-packages.json](../docker/php/hyva-packages.json). Playwright tests include the elgentos guest fixture. CSP runs require an enforcing script policy and verify that unauthorized inline scripts and dynamic code are blocked. Legacy Hyvä runs use `--hyva --nocsp`. Licensed Hyvä Checkout and the full upstream elgentos checkout suite are outside this installation matrix.
 
-The matrix also compares covered and uncovered lines in the shared Blog PHP and Admin JavaScript across all four installations. Within each theme, Cypress and Playwright must produce the same Blog PHP and JavaScript line coverage and template statement coverage. The comparison is saved to `.runtime/e2e/matrix-comparison.json`. Overall percentages can differ between Luma and Hyvä because their storefront implementations differ and inactive application files remain uncovered.
+The matrix also compares covered and uncovered lines in the shared Blog PHP and Admin JavaScript across all six installations. Within each theme, Cypress and Playwright must produce the same Blog PHP and JavaScript line coverage and template statement coverage. The comparison is saved to `.runtime/e2e/matrix-comparison.json`. Overall percentages can differ between Luma and Hyvä because their storefront implementations differ and inactive application files remain uncovered.
 
-To test one combination, set `MAGELENS_E2E_THEME=luma` or `hyva`, and `MAGELENS_E2E_RUNNER=cypress` or `playwright`. For example:
+To test one combination, set `MAGELENS_E2E_THEME=luma`, `hyva` or `hyva-legacy`, and `MAGELENS_E2E_RUNNER=cypress` or `playwright`. For example:
 
 ```bash
 MAGELENS_E2E_THEME=hyva MAGELENS_E2E_RUNNER=playwright \
@@ -53,7 +53,7 @@ To test unpublished library changes, pack a sibling `magento-template-coverage` 
 
 ```bash
 (cd ../magento-template-coverage && npm pack --ignore-scripts --pack-destination /tmp)
-MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.4.0.tgz \
+MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.5.0.tgz \
 MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 ```
 

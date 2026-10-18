@@ -1,9 +1,12 @@
 # Release notes
 
-## 1.2.1 - 2026-10-18
+## 1.3.0 - 2026-10-18
 
-- Update template coverage to 1.4.0, linking PHP-rendered JavaScript to child template source files and distinguishing empty, unresolved and unobserved output.
-- Verify child-template source attribution, executed functions and uncovered branches in all four Luma/Hyvä and Cypress/Playwright installation checks.
+- Make `--hyva` install the CSP theme with enforced storefront script policy. Use `--hyva --nocsp` for the legacy theme with either runner.
+- Support CSP-compatible Blog flows, Alpine bindings and inline template coverage. Keep script policies enabled during Cypress checks.
+- Keep instrumented templates functional during unmeasured warm-up in both runners.
+- Update template coverage to 1.5.0, linking PHP-rendered JavaScript to child template source files and distinguishing empty, unresolved and unobserved output.
+- Verify child-template source attribution, executed functions and uncovered branches in all six Luma/Hyvä CSP/legacy Hyvä and Cypress/Playwright installation checks.
 
 ## 1.2.0 — 2026-10-18
 

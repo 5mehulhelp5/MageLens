@@ -1,4 +1,5 @@
-// This support file deliberately registers no coverage collectors or PHP token.
+// Keep instrumented templates functional without recording coverage or a PHP token.
+const {observeExecution} = require('@vitaliiboiko/magento-template-coverage/browser');
 let win;
 let lastActivity = Date.now();
 let requests = new Map();
@@ -41,7 +42,7 @@ beforeEach(() => {
     });
 });
 
-Cypress.on('window:before:load', current => { win = current; });
+Cypress.on('window:before:load', current => { win = current; observeExecution(current, () => {}); });
 Cypress.on('fail', error => {
     error.message += '\nWarm-up state: ' + JSON.stringify(snapshot(), null, 2);
     throw error;

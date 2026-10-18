@@ -3,7 +3,7 @@ declare(strict_types=1);
 require '/var/www/html/app/bootstrap.php';
 $om = Magento\Framework\App\Bootstrap::create(BP, $_SERVER)->getObjectManager();
 $om->get(Magento\Framework\App\State::class)->setAreaCode('adminhtml');
-$expected = $argv[1] === 'hyva' ? 'Hyva/default' : 'Magento/luma';
+$expected = ['hyva' => 'Hyva/default-csp', 'hyva-legacy' => 'Hyva/default', 'luma' => 'Magento/luma'][$argv[1]];
 $design = $om->get(Magento\Framework\View\DesignInterface::class);
 $factory = $om->get(Magento\Framework\View\Design\Theme\FlyweightFactory::class);
 foreach ($om->get(Magento\Store\Model\StoreManagerInterface::class)->getStores() as $store) {

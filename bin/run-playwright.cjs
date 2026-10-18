@@ -7,6 +7,7 @@ async function main() {
         const browser = await chromium.launch();
         try {
             const page = await browser.newPage({ignoreHTTPSErrors: true});
+            await require('@vitaliiboiko/magento-template-coverage/playwright').installTemplateRuntime(page.context());
             const response = await page.goto(process.env.PLAYWRIGHT_BASE_URL || process.env.CYPRESS_BASE_URL, {timeout: 180000});
             if (!response?.ok()) throw new Error(`Storefront warm-up HTTP ${response?.status()}`);
             await page.waitForLoadState('networkidle', {timeout: 180000});

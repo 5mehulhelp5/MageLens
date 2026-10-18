@@ -5,10 +5,11 @@ preflight
 [[ $# == 0 ]] || fail 'Usage: bash tests/e2e-isolated.sh (see tests/README.md for configuration)'
 theme=${MAGELENS_E2E_THEME:-luma}
 runner=${MAGELENS_E2E_RUNNER:-cypress}
-[[ "$theme" == luma || "$theme" == hyva ]] || fail 'MAGELENS_E2E_THEME must be luma or hyva.'
+[[ "$theme" == luma || "$theme" == hyva || "$theme" == hyva-legacy ]] || fail 'MAGELENS_E2E_THEME must be luma, hyva or hyva-legacy.'
 [[ "$runner" == cypress || "$runner" == playwright ]] || fail 'MAGELENS_E2E_RUNNER must be cypress or playwright.'
 install_options=()
-[[ "$theme" != hyva ]] || install_options+=(--hyva)
+[[ "$theme" != hyva* ]] || install_options+=(--hyva)
+[[ "$theme" != hyva-legacy ]] || install_options+=(--nocsp)
 [[ "$runner" != playwright ]] || install_options+=(--playwright)
 
 if [[ -n "${MAGELENS_COMPOSER_AUTH_VOLUME:-}" ]]; then

@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.2.1.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -29,15 +29,25 @@ The command above installs Luma with Cypress. For another combination, append th
 | Installer command | Storefront | Browser runner |
 | --- | --- | --- |
 | `./install.sh` | Luma | Cypress |
-| `./install.sh --hyva` | Hyvä | Cypress |
+| `./install.sh --hyva` | Hyvä CSP | Cypress |
 | `./install.sh --playwright` | Luma | Playwright |
-| `./install.sh --hyva --playwright` | Hyvä | Playwright |
+| `./install.sh --hyva --playwright` | Hyvä CSP | Playwright |
+| `./install.sh --hyva --nocsp` | Legacy Hyvä | Cypress |
+| `./install.sh --hyva --nocsp --playwright` | Legacy Hyvä | Playwright |
 
 Each installation includes only its selected runner, browser download and runner tooling. Playwright installs have no Cypress desktop/viewer. The installer saves the selection; `./bin/run-coverage` uses it automatically. Repeat the same flags when rerunning installation; omitted flags select Luma/Cypress.
 
 Hyvä replaces the active storefront theme. Magento's bundled Luma/Blank packages remain part of Magento; the installer does not remove core files. Hyvä is downloaded only for `--hyva`.
 
-All four modes install their coverage dependencies from npm.
+All six modes install their coverage dependencies from npm. `--nocsp` requires `--hyva`.
+
+`--hyva` installs `Hyva/default-csp` and enforces its storefront script policy.
+Use `--hyva --nocsp` for `Hyva/default` and existing customizations that require the
+regular Alpine evaluator. The bundled Luma fallback checkout keeps its legacy script
+policy; licensed Hyvä Checkout is a separate product. CSP-aware template coverage
+keeps bindings and inline scripts in the template report and whole `.js` files in
+the JavaScript report. Cypress preserves script CSP directives and adds its own
+nonce; Playwright tests the original policy. See [Cypress CSP behavior](https://docs.cypress.io/app/references/content-security-policy).
 
 See the [release notes](CHANGELOG.md) for changes in this version.
 
@@ -120,7 +130,7 @@ This is the single place to choose the main dependency versions:
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
 | Playwright | `PLAYWRIGHT_VERSION` |
-| Hyvä default theme | `HYVA_VERSION` |
+| Hyvä CSP / legacy theme | `HYVA_VERSION` |
 | Cypress JavaScript coverage adapter | `CYPRESS_CODE_COVERAGE_VERSION` |
 | Istanbul coverage data / instrumentation | `ISTANBUL_LIB_COVERAGE_VERSION` / `ISTANBUL_LIB_INSTRUMENT_VERSION` |
 | Istanbul report CLI (nyc) | `NYC_VERSION` |
@@ -132,7 +142,7 @@ Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image wi
 
 The installer synchronizes the selected runner and shared Istanbul, nyc, and template coverage dependencies, in `package.json` and `package-lock.json`. The committed default lock selects Cypress. Installation regenerates it for Playwright when requested. Hyvä’s public package snapshot in `docker/php/hyva-packages.json` must match `HYVA_VERSION`.
 
-To validate dependency changes, use `npm run test:e2e` for a fresh Luma/Cypress installation or `npm run test:e2e:matrix` for all four theme/runner combinations. These checks verify coverage reports in temporary environments. See [test setup and artifacts](tests/README.md). `./install.sh --container-only [domain]` supports container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
+To validate dependency changes, use `npm run test:e2e` for a fresh Luma/Cypress installation or `npm run test:e2e:matrix` for all six theme/runner combinations. These checks verify coverage reports in temporary environments. See [test setup and artifacts](tests/README.md). `./install.sh --container-only [domain]` supports container-only runs with self-signed HTTPS, without changing host DNS or certificate trust.
 
 Select Playwright during installation with `./install.sh --playwright`, then use `./bin/run-coverage`. Import `test` and `expect` from `playwright/support.cjs` in project specs under `playwright/e2e/` or module `Test/Playwright/` directories. Cypress remains the default. Both runners produce PHP, JavaScript and template reports with the same source-integrity checks.
 
@@ -149,13 +159,13 @@ After installation, Magento's full source is available in **`src/`** and bind-mo
 Copy them into their normal Magento locations, for example `src/app/code/YourVendor/YourModule` or `src/app/design/frontend/YourVendor/your-theme`, then run:
 
 ```bash
-./install.sh # include --hyva and/or --playwright if selected
+./install.sh # repeat your --hyva, --nocsp and --playwright selections
 ./bin/run-coverage
 ```
 
 The installer enables newly discovered modules and preserves explicitly disabled modules. Add Cypress tests under `cypress/e2e/` or a module's `Test/Cypress/` directory; add Playwright tests under `playwright/e2e/` or a module's `Test/Playwright/` directory. See [adding scenarios](docs/coverage.md#use-your-project) for the required Playwright coverage fixture.
 
-Fresh installations select Luma by default and Hyvä with `--hyva`. Installation applies the selected base theme. To select a custom child theme afterward, use **Content → Design → Configuration**; the next coverage run follows your selection.
+Fresh installations select Luma by default and Hyvä CSP with `--hyva` (legacy Hyvä with `--hyva --nocsp`). Installation applies the selected base theme. To select a custom child theme afterward, use **Content → Design → Configuration**; the next coverage run follows your selection.
 
 ### Copy a complete Magento project
 

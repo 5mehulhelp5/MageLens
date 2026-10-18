@@ -3,7 +3,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
 const directories = process.argv.slice(2);
-assert.equal(directories.length, 4, 'Supply the four coverage directories from one installation matrix');
+assert.equal(directories.length, 6, 'Supply the six coverage directories from one installation matrix');
 const normalize = file => file.slice(file.indexOf('app/code/'));
 const blog = file => file.includes('/Application/Blog/');
 function lines(files, select) {
@@ -28,8 +28,8 @@ const runs = directories.map(directory => {
     const read = file => JSON.parse(fs.readFileSync(path.join(directory, file)));
     execFileSync(process.execPath, [path.join(__dirname, 'verify-scenarios.cjs'), directory], {stdio: 'inherit'});
     const themePaths = read('project-fixtures.json').Application_Blog.themePaths;
-    const theme = themePaths.includes('Hyva/default') ? 'hyva' : 'luma';
-    assert.equal(themePaths[0], theme === 'hyva' ? 'Hyva/default' : 'Magento/luma', 'Matrix must exercise the installer-selected base theme');
+    const theme = themePaths.includes('Hyva/default-csp') ? 'hyva' : themePaths.includes('Hyva/default') ? 'hyva-legacy' : 'luma';
+    assert.equal(themePaths[0], {'hyva': 'Hyva/default-csp', 'hyva-legacy': 'Hyva/default', luma: 'Magento/luma'}[theme], 'Matrix must exercise the installer-selected base theme');
     const runner = read('run.json').runner || 'cypress';
     const php = read('php/merged-lines.json');
     const js = javascriptLines(read('js/coverage-final.json'));
@@ -42,7 +42,7 @@ const runs = directories.map(directory => {
     return {theme, runner, directory, passedTests: read(`${runner}-results.json`).totalPassed, metrics: read('summary.json').metrics,
         sharedPhp, sharedJs, php: lines(php, blog), js: lines(js, blog), templateHits};
 });
-assert.deepEqual(runs.map(run => `${run.theme}/${run.runner}`).sort(), ['hyva/cypress', 'hyva/playwright', 'luma/cypress', 'luma/playwright']);
+assert.deepEqual(runs.map(run => `${run.theme}/${run.runner}`).sort(), ['hyva-legacy/cypress', 'hyva-legacy/playwright', 'hyva/cypress', 'hyva/playwright', 'luma/cypress', 'luma/playwright']);
 const differences = [];
 function compare(label, left, right) {
     for (const file of new Set([...Object.keys(left), ...Object.keys(right)])) {
@@ -53,7 +53,7 @@ for (const run of runs.slice(1)) {
     compare(`Shared PHP: ${runs[0].theme}/${runs[0].runner} vs ${run.theme}/${run.runner}`, runs[0].sharedPhp, run.sharedPhp);
     compare(`Shared Admin JavaScript: ${runs[0].theme}/${runs[0].runner} vs ${run.theme}/${run.runner}`, runs[0].sharedJs, run.sharedJs);
 }
-for (const theme of ['luma', 'hyva']) {
+for (const theme of ['luma', 'hyva', 'hyva-legacy']) {
     const [left, right] = runs.filter(run => run.theme === theme);
     compare(`${theme} PHP: Cypress vs Playwright`, left.php, right.php);
     compare(`${theme} JavaScript: Cypress vs Playwright`, left.js, right.js);
@@ -67,4 +67,4 @@ const target = process.env.MAGELENS_MATRIX_REPORT || '.runtime/e2e/matrix-compar
 fs.mkdirSync(path.dirname(target), {recursive: true});
 fs.writeFileSync(target, JSON.stringify(output, null, 2) + '\n');
 assert.equal(differences.length, 0, `Coverage outcomes differ; inspect ${target}`);
-console.log(`Verified equivalent scenarios and covered source lines across all four modes. Comparison: ${target}`);
+console.log(`Verified equivalent scenarios and covered source lines across all six modes. Comparison: ${target}`);

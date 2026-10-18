@@ -1,6 +1,16 @@
+const {verifyScriptPolicy} = require('../csp-proof');
 const {test, expect} = require('../../../../../../../playwright/support.cjs');
 test('collects real PHP, JavaScript and template execution', async ({page}) => {
-    await page.goto('/coverageprobe/');
+    const response = await page.goto('/coverageprobe/');
+    if (process.env.MAGELENS_THEME === 'hyva') {
+        const policy = response.headers()['content-security-policy'];
+        expect(policy).toContain('script-src');
+        expect(policy.match(/(?:^|;)\s*script-src\s+([^;]+)/)[1]).not.toContain("'unsafe-eval'");
+        expect(policy.match(/(?:^|;)\s*script-src\s+([^;]+)/)[1]).not.toContain("'unsafe-inline'");
+        const proof = await page.evaluate('(' + verifyScriptPolicy.toString() + ')(document)');
+        expect(proof).toEqual({evalBlocked: true, inlineBlocked: true, inlineExecuted: false});
+        require('node:fs').writeFileSync('coverage/csp-proof.json', JSON.stringify({theme: 'Hyva/default-csp', runner: 'playwright', ...proof}));
+    }
     await expect(page.locator('[data-cy="inline-probe"]')).toHaveText('inline-ready');
     expect(await page.evaluate(() => window.magelensChildScript)).toBe('child-ready');
     await expect(page.locator('[data-cy="probe-count"]')).toHaveText('0');

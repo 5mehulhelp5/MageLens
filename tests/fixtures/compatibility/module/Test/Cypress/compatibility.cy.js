@@ -1,6 +1,19 @@
+const {verifyScriptPolicy} = require('../csp-proof');
 describe('Magento storefront coverage compatibility', () => {
     it('collects real PHP, JavaScript and template execution', () => {
         cy.visit('/coverageprobe/');
+        if (Cypress.expose('hyvaCsp')) {
+            cy.request('/coverageprobe/').then(response => {
+                const policy = response.headers['content-security-policy'];
+                expect(policy).to.contain('script-src');
+                expect(policy.match(/(?:^|;)\s*script-src\s+([^;]+)/)[1]).not.to.contain("'unsafe-eval'");
+                expect(policy.match(/(?:^|;)\s*script-src\s+([^;]+)/)[1]).not.to.contain("'unsafe-inline'");
+            });
+            cy.window().then(win => verifyScriptPolicy(win.document)).then(proof => {
+                expect(proof).to.deep.equal({evalBlocked: true, inlineBlocked: true, inlineExecuted: false});
+                cy.writeFile('coverage/csp-proof.json', {theme: 'Hyva/default-csp', runner: 'cypress', ...proof});
+            });
+        }
         cy.get('[data-cy="inline-probe"]').should('have.text', 'inline-ready');
         cy.window().its('magelensChildScript').should('equal', 'child-ready');
         cy.get('[data-cy="probe-count"]').should('have.text', '0');

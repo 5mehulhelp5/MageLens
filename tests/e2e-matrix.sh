@@ -8,7 +8,7 @@ printf '{"passed":false,"status":"running"}\n' > "$MAGELENS_MATRIX_REPORT"
 results=$(mktemp -d /tmp/magelens-matrix.XXXXXX)
 trap 'rm -rf "$results"' EXIT
 reports=()
-for theme in luma hyva; do
+for theme in luma hyva hyva-legacy; do
     for runner in cypress playwright; do
         output="$results/$theme-$runner"
         if MAGELENS_E2E_RESULT_FILE="$output" MAGELENS_E2E_THEME="$theme" MAGELENS_E2E_RUNNER="$runner" bash tests/e2e-isolated.sh; then

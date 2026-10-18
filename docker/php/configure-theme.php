@@ -66,20 +66,27 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     $om = Magento\Framework\App\Bootstrap::create(BP, $_SERVER)->getObjectManager();
     $om->get(Magento\Framework\App\State::class)->setAreaCode('adminhtml');
     $profile = getenv('MAGELENS_THEME');
-    if ($profile === 'luma' || $profile === 'hyva') {
-        $themePath = $profile === 'hyva' ? 'Hyva/default' : 'Magento/luma';
+    if (in_array($profile, ['luma', 'hyva', 'hyva-legacy'], true)) {
+        $themePath = ['hyva' => 'Hyva/default-csp', 'hyva-legacy' => 'Hyva/default', 'luma' => 'Magento/luma'][$profile];
         $om->get(Magento\Theme\Model\Theme\Registration::class)->register();
         $theme = $om->create(Magento\Theme\Model\ResourceModel\Theme\Collection::class)
             ->addFieldToFilter('area', 'frontend')->addFieldToFilter('theme_path', $themePath)->getFirstItem();
         if (!$theme->getId()) throw new RuntimeException('Selected theme is not registered: ' . $themePath);
         $writer = $om->get(Magento\Framework\App\Config\Storage\WriterInterface::class);
         $writer->save('design/theme/theme_id', $theme->getId());
-        if ($profile === 'hyva') {
+        if (str_starts_with($profile, 'hyva')) {
             foreach (['customer/captcha/enable', 'dev/template/minify_html', 'dev/js/merge_files', 'dev/js/enable_js_bundling',
                 'dev/js/minify_files', 'dev/js/move_script_to_bottom', 'dev/css/merge_css_files', 'dev/css/minify_files'] as $setting) {
                 $writer->save($setting, 0);
             }
         }
+        // The CSP storefront enforces script policy. The bundled Luma checkout
+        // remains a separate legacy route; licensed Hyva Checkout is not installed.
+        $writer->save('csp/mode/storefront/report_only', $profile === 'hyva' ? 0 : 1);
+        $writer->save('csp/policies/storefront/scripts/eval', $profile === 'hyva' ? 0 : 1);
+        $writer->save('csp/policies/storefront/scripts/inline', $profile === 'hyva' ? 0 : 1);
+        $writer->save('csp/policies/storefront_checkout_index_index/scripts/eval', 1);
+        $writer->save('csp/policies/storefront_checkout_index_index/scripts/inline', 1);
         $om->get(Magento\Framework\App\Cache\TypeListInterface::class)->cleanType('config');
         echo 'Enabled ', $themePath, "\n";
     } else {

@@ -28,7 +28,7 @@ Admin uses Magento's normal login, Blog ACL permission, secret URL keys, and for
 
 Content is shared across this installation's store views, with one category per post. Articles and comments use plain text. This demo is intended for local development.
 
-Installation selects Luma by default or Hyvä with `--hyva`. The Blog uses Knockout on Luma and Alpine on Hyvä. To use the included Luma demonstration theme, select `Application/coverage` in **Content → Design → Configuration**. Both browser suites support these themes; the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
+Installation selects Luma by default or Hyvä CSP with `--hyva` or legacy Hyvä with `--hyva --nocsp`. The Blog uses Knockout on Luma and Alpine on Hyvä. To use the included Luma demonstration theme, select `Application/coverage` in **Content → Design → Configuration**. Both browser suites support these themes; the journal note is checked only for the demo theme. Reports follow the selected themes and their local parents, excluding inactive themes and `vendor`.
 
 ## What the browser suites verify
 

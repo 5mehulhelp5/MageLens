@@ -1,11 +1,11 @@
 <?php /** @var \Magento\Framework\View\Element\Template $block */ ?>
-<section class="coverage-blog" data-cy="blog" data-posts-url="<?= $block->escapeUrl($block->getUrl('blog/index/posts')) ?>" x-data="applicationBlog($el.dataset.postsUrl)">
+<section class="coverage-blog" data-cy="blog" data-posts-url="<?= $block->escapeUrl($block->getUrl('blog/index/posts')) ?>" x-data="applicationBlog">
     <p><?= $block->escapeHtml($block->getData('view_model')->introduction()) ?></p>
-    <form class="blog-filters" @submit.prevent="search()">
+    <form class="blog-filters" @submit.prevent="search">
         <label for="blog-query">Search articles</label>
-        <input id="blog-query" data-cy="search" type="search" maxlength="200" x-model="query" :disabled="busy"/>
+        <input id="blog-query" data-cy="search" type="search" maxlength="200" x-model="queryModel" :disabled="busy"/>
         <label for="blog-category">Category</label>
-        <select id="blog-category" data-cy="category" x-model="category" :disabled="busy">
+        <select id="blog-category" data-cy="category" x-model="categoryModel" :disabled="busy">
             <option value="">All categories</option>
             <?php foreach ($block->getData('view_model')->categories() as $category): ?>
             <option value="<?= $block->escapeHtmlAttr($category['slug']) ?>"><?= $block->escapeHtml($category['name']) ?></option>
@@ -13,12 +13,12 @@
         </select>
         <button data-cy="search-submit" type="submit" :disabled="busy">Search</button>
     </form>
-    <p role="status" data-cy="status" x-text="busy ? 'Loading…' : total + ' articles'">Loading…</p>
+    <p role="status" data-cy="status" x-text="statusLabel">Loading…</p>
     <p role="alert" data-cy="load-error" x-show="message" x-text="message"></p>
     <template x-if="favoriteNotice">
         <p role="status" data-cy="favorite-notice" x-text="favoriteNotice"></p>
     </template>
-    <template x-if="!busy &amp;&amp; !message &amp;&amp; total === 0">
+    <template x-if="empty">
         <p data-cy="empty">No articles found. Try another search or category.</p>
     </template>
     <template x-for="post in posts" :key="post.id">
@@ -27,19 +27,19 @@
             <h2><a data-cy="read-post" x-text="post.title" :href="post.url"></a></h2>
             <p><span x-text="post.category"></span> · <span x-text="post.author"></span></p>
             <p x-text="post.excerpt"></p>
-            <button type="button" data-cy="details" @click="toggleDetails(post)" :aria-expanded="expanded === post.id ? 'true' : 'false'">Quick read</button>
-            <button type="button" data-cy="favorite" @click="toggleFavorite(post)" x-text="favorites.includes(post.id) ? 'Unfavorite' : 'Favorite'"></button>
-            <template x-if="expanded === post.id">
+            <button type="button" data-cy="details" @click="toggleDetails" :aria-expanded="expandedLabel">Quick read</button>
+            <button type="button" data-cy="favorite" @click="toggleFavorite" x-text="favoriteLabel"></button>
+            <template x-if="postExpanded">
                 <p data-cy="post-body" x-text="post.body"></p>
             </template>
-            <template x-if="false">
+            <template x-if="neverVisible">
                 <p data-cy="unpublished-post" x-text="post.title"></p>
             </template>
         </article>
     </template>
-    <nav class="blog-pagination" aria-label="Article pages" x-show="pages > 1">
-        <button data-cy="previous" @click="previous()" :disabled="busy || page &lt;= 1">Previous</button>
-        <span data-cy="page-number" x-text="'Page ' + page + ' of ' + pages"></span>
-        <button data-cy="next" @click="next()" :disabled="busy || page >= pages">Next</button>
+    <nav class="blog-pagination" aria-label="Article pages" x-show="multiplePages">
+        <button data-cy="previous" @click="previous" :disabled="previousDisabled">Previous</button>
+        <span data-cy="page-number" x-text="pageLabel"></span>
+        <button data-cy="next" @click="next" :disabled="nextDisabled">Next</button>
     </nav>
 </section>

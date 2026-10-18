@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const [theme, runner] = process.argv.slice(2);
-assert.ok(['luma', 'hyva'].includes(theme));
+assert.ok(['luma', 'hyva', 'hyva-legacy'].includes(theme));
 assert.ok(['cypress', 'playwright'].includes(runner));
 const manifest = JSON.parse(fs.readFileSync('package.json'));
 const lock = JSON.parse(fs.readFileSync('package-lock.json'));
@@ -18,5 +18,6 @@ assert.equal(fs.existsSync('/opt/playwright'), runner === 'playwright', 'Playwri
 assert.equal(fs.existsSync('/usr/share/novnc'), runner === 'cypress', 'The desktop viewer belongs only to Cypress');
 assert.equal(fs.readFileSync('.runtime/install-profile', 'utf8').trim(), `${theme} ${runner}`);
 const composer = JSON.parse(fs.readFileSync('src/composer.lock'));
-assert.equal(composer.packages.some(pkg => pkg.name === 'hyva-themes/magento2-default-theme'), theme === 'hyva');
+assert.equal(composer.packages.some(pkg => pkg.name === 'hyva-themes/magento2-default-theme'), theme === 'hyva-legacy');
+assert.equal(composer.packages.some(pkg => pkg.name === 'hyva-themes/magento2-default-theme-csp'), theme === 'hyva');
 console.log(`Verified isolated ${theme}/${runner} installation, packages, browsers and persisted selection.`);
