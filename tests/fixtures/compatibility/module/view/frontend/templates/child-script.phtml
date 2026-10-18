@@ -1,0 +1,9 @@
+<?php declare(strict_types=1); ?>
+<?php if (false): ?><script><?php endif; ?>
+function childScriptValue(enabled) {
+    if (enabled) return 'child-ready';
+    return 'unused child branch';
+}
+function unusedChildScript() { return 'unused child function'; }
+window.magelensChildScript = childScriptValue(true);
+<?php if (false): ?></script><?php endif; ?>

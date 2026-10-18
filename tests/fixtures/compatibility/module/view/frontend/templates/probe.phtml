@@ -5,6 +5,7 @@ $config = ['Magento_Ui/js/core/app' => ['components' => ['coverageProbe' => ['co
 <output data-cy="inline-probe"></output>
 <script>
 (function () {
+    <?= $block->getLayout()->createBlock(\Magento\Framework\View\Element\Template::class)->setTemplate('MageLens_Compatibility::child-script.phtml')->toHtml() ?>
     const message = <?= json_encode('inline-ready') ?>;
     function renderInlineProbe(visible) {
         if (visible) {

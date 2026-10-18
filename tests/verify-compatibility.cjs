@@ -31,3 +31,13 @@ assert.ok(inline.functions.find(fn => fn.name === 'renderInlineProbe')?.hits > 0
 assert.equal(inline.functions.find(fn => fn.name === 'unusedInlineProbe')?.hits, 0, 'Unused inline function must stay uncovered');
 assert.ok(inline.branches.some(branch => branch.hits > 0) && inline.branches.some(branch => branch.hits === 0), 'Inline branches need both covered and uncovered outcomes');
 console.log(`Verified ${theme} PHP, whole-file JavaScript and template execution, including inline scripts and untouched branches and templates.`);
+
+const child = templates.templates.find(entry => entry.path.endsWith('templates/child-script.phtml'));
+assert.ok(child?.statements.some(statement => statement.hits > 0), 'Missing child-template execution');
+assert.ok(child.functions.find(fn => fn.name === 'childScriptValue')?.hits > 0);
+assert.equal(child.functions.find(fn => fn.name === 'unusedChildScript')?.hits, 0);
+assert.ok(child.branches.some(branch => branch.hits > 0) && child.branches.some(branch => branch.hits === 0));
+const childReference = templates.scripts.references.find(reference => reference.path === inline.path);
+assert.equal(childReference?.status, 'linked');
+assert.ok(childReference.targets.some(target => target.id === child.id));
+console.log('Verified PHP-rendered child source links and child counters without parent duplication.');

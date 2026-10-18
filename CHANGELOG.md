@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.2.1 - 2026-10-18
+
+- Update template coverage to 1.4.0, linking PHP-rendered JavaScript to child template source files and distinguishing empty, unresolved and unobserved output.
+- Verify child-template source attribution, executed functions and uncovered branches in all four Luma/Hyvä and Cypress/Playwright installation checks.
+
 ## 1.2.0 — 2026-10-18
 
 - Updated Magento template coverage to 1.3.0. HTML/PHTML bindings, template expressions and inline scripts now share the template report, with script functions and branches mapped to original source lines. PHP executable lines remain in the PHP report.
