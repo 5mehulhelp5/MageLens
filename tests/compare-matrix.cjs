@@ -31,7 +31,7 @@ const runs = directories.map(directory => {
     const theme = themePaths.includes('Hyva/default-csp') ? 'hyva' : themePaths.includes('Hyva/default') ? 'hyva-legacy' : 'luma';
     assert.equal(themePaths[0], {'hyva': 'Hyva/default-csp', 'hyva-legacy': 'Hyva/default', luma: 'Magento/luma'}[theme], 'Matrix must exercise the installer-selected base theme');
     const runner = read('run.json').runner || 'cypress';
-    const php = read('php/merged-lines.json');
+    const php = read('php/line-coverage.json');
     const js = javascriptLines(read('js/coverage-final.json'));
     const templates = read('templates/coverage-summary.json');
     const templateHits = Object.fromEntries(templates.templates.filter(entry => blog(entry.path)).sort((a, b) => a.path.localeCompare(b.path)).map(entry =>

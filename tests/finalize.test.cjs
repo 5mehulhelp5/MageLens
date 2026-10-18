@@ -38,3 +38,18 @@ test('a report from a different run cannot publish passing badges', t => {
     assert.notEqual(fixture.run().status, 0);
     assert.ok(!fs.existsSync(`${fixture.root}/coverage/summary.json`));
 });
+
+test('unsupported template directives remain visible when scripts and browser tests pass', t => {
+    const fixture = reports(t, 1);
+    const file = `${fixture.root}/coverage/templates/coverage-summary.json`;
+    const templates = JSON.parse(fs.readFileSync(file));
+    templates.templates = [{path: 'app/design/frontend/Example/theme/image.phtml', kind: 'browser-phtml',
+        unsupportedDirectives: ['Dynamic event name at line 12']}];
+    templates.scripts = {instrumented: 1, unsupported: [], generated: []};
+    fs.writeFileSync(file, JSON.stringify(templates));
+    const result = fixture.run();
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(fs.readFileSync(`${fixture.root}/coverage/index.html`, 'utf8'), /Template measurement is partial.*1 unsupported directives/s);
+    assert.deepEqual(JSON.parse(fs.readFileSync(`${fixture.root}/coverage/summary.json`)).templateLimitations.directives,
+        [{path: templates.templates[0].path, reason: 'Dynamic event name at line 12'}]);
+});

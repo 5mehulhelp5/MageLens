@@ -6,11 +6,19 @@ function escapeHtml(value) {
     })[character]);
 }
 
+function templateLimitations(templates) {
+    return {
+        directives: templates.templates.flatMap(entry => (entry.unsupportedDirectives || []).map(reason => ({path: entry.path, reason}))),
+        scripts: templates.scripts?.unsupported || [],
+        generated: templates.scripts?.generated || []
+    };
+}
+
 function writeIndex({run, generatedAt, metrics, php, js, templates, tests}) {
     const runner = run.runner === 'playwright' ? 'Playwright' : 'Cypress';
     const reports = [
         {key: 'php', covered: php.covered, total: php.total, unit: 'lines',
-            description: 'PHP and .phtml executed by Magento HTTP requests.'},
+            description: 'Executable PHP in .php and .phtml files; original source, without HTML or JavaScript lines.'},
         {key: 'js', covered: js.total.statements.covered, total: js.total.statements.total, unit: 'statements',
             description: 'Whole .js files executed in the browser.'},
         {key: 'templates', covered: templates.lines.covered, total: templates.lines.total, unit: 'template lines',
@@ -29,6 +37,8 @@ function writeIndex({run, generatedAt, metrics, php, js, templates, tests}) {
     const javascript = fs.existsSync('coverage/javascript-summary.json') ? JSON.parse(fs.readFileSync('coverage/javascript-summary.json')) : null;
     const javascriptDetails = javascript ? `<p class="note">JavaScript reports: <a href="js-application/index.html">application</a> · <a href="js-libraries/index.html">bundled libraries</a>. <a href="javascript-summary.json">Group totals</a> · <a href="javascript-scope.json">Scope and exclusion reasons</a>.</p>` : '';
     const templateDetails = templates.scripts ? `<p class="note">Template scripts: ${templates.scripts.instrumented} instrumented; ${templates.scripts.unsupported.length} unsupported; ${templates.scripts.generated.length} PHP-generated fragments without a static map. <a href="templates/index.html">Template report</a> · <a href="templates/coverage-summary.json">Template coverage details</a>.</p>` : '';
+    const gaps = templateLimitations(templates);
+    const templateWarning = Object.values(gaps).some(items => items.length) ? `<p class="note"><strong>Template measurement is partial.</strong> ${gaps.directives.length} unsupported directives, ${gaps.scripts.length} unsupported scripts and ${gaps.generated.length} unmapped PHP outputs are not fully measured. The percentage covers instrumented constructs only. <a href="templates/coverage-summary.json">Inspect the affected files and reasons</a>.</p>` : '';
     fs.writeFileSync('coverage/index.html', `<!doctype html>
 <html lang="en">
 <head>
@@ -79,6 +89,7 @@ code { overflow-wrap: anywhere; }
 <p class="note">PHP measures executable lines; JavaScript measures statements so minified bundles do not distort the percentage. Template coverage measures bindings, template expressions and inline scripts in HTML/PHTML, mapped to their original source. Script functions, branches and DOM presence are reported separately. Unvisited eligible code remains in the denominator.</p>
 ${javascriptDetails}
 ${templateDetails}
+${templateWarning}
 <footer>
 <p>Run <code>${escapeHtml(run.id)}</code><br>Generated <time datetime="${escapeHtml(generatedAt)}">${escapeHtml(generatedAt)}</time> · <a href="summary.json">Coverage data (JSON)</a></p>
 </footer>
@@ -88,4 +99,4 @@ ${templateDetails}
 `);
 }
 
-module.exports = {writeIndex};
+module.exports = {writeIndex, templateLimitations};

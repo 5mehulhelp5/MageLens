@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {sourceHashes} = require('./prepare.cjs');
 const {badge, cypressBadge, setBadgeSection} = require('./badges.cjs');
-const {writeIndex} = require('./report-index.cjs');
+const {writeIndex, templateLimitations} = require('./report-index.cjs');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const run = read('coverage/run.json');
 const php = read('coverage/php/coverage-summary.json');
@@ -42,7 +42,8 @@ for (const [type, metric] of Object.entries(metrics)) {
     fs.writeFileSync(`coverage/badges/${type}.svg`, badge(type, metric.percent));
 }
 const generatedAt = new Date().toISOString();
-fs.writeFileSync('coverage/summary.json', JSON.stringify({run: run.id, generatedAt, metrics}, null, 2));
+fs.writeFileSync('coverage/summary.json', JSON.stringify({run: run.id, generatedAt, metrics,
+    templateLimitations: templateLimitations(templates)}, null, 2));
 writeIndex({run, generatedAt, metrics, php, js, templates, tests});
 setBadgeSection(`[![${label}: ${tests.totalPassed}/${tests.totalTests} passed](coverage/badges/${runner}.svg)](coverage/index.html)\n` + Object.entries(metrics).map(([type, metric]) =>
     `[![${metric.label}: ${metric.percent.toFixed(2)}%](coverage/badges/${type}.svg)](coverage/${type}/index.html)`

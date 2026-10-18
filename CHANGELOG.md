@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.3.2 - 2026-10-18
+
+- PHP coverage now counts executable PHP lines without counting emitted HTML or inline JavaScript as PHP execution.
+- PHP source reports display the original files and reject sources changed since collection. Unvisited PHP files remain included.
+- The coverage overview and JSON summary identify unsupported template directives and other measurement gaps.
+- PHP report labels identify the selected browser runner.
+
 ## 1.3.1 - 2026-10-18
 
 - Add `withCoverage(test)` to preserve existing Playwright fixtures while collecting PHP, JavaScript and template coverage.

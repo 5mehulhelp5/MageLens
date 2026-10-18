@@ -74,6 +74,7 @@ for file in bin docker patches cypress playwright tests assets install.sh .docke
 done
 mkdir -p "$scratch/docker/php/e2e"
 cp tests/fixtures/compatibility/*.php "$scratch/docker/php/e2e/"
+cp tests/php-report.test.php "$scratch/docker/php/e2e/"
 # Exercise the bundled demo only; existing Magento data and third-party modules
 # are not fixtures. Composer downloads a clean source tree into this workspace.
 mkdir -p "$scratch/src/app/code" "$scratch/src/app/design/frontend"
@@ -108,6 +109,8 @@ docker run --rm --user root --entrypoint sh \
     ./bin/application-compose exec -T runner node tests/verify-installation.cjs "$theme" "$runner"
     ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme"
     ./bin/application-compose exec -T runner node tests/dependencies.test.cjs
+    ./bin/application-compose exec -T -e MAGELENS_REPORT_DATA=/application/docker/php/report-data.php phpfpm \
+        php -d pcov.directory=/tmp -d pcov.exclude= /application/docker/php/e2e/php-report.test.php
     if [[ "$runner" == playwright ]]; then
         ./bin/application-compose exec -T runner npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @elgentos/magento2-playwright@7.1.0
         ./bin/application-compose exec -T runner node tests/setup-compatibility.cjs
@@ -115,6 +118,7 @@ docker run --rm --user root --entrypoint sh \
     ./bin/application-compose exec -T phpfpm bash /application/docker/php/refresh-assets.sh
     # The installer selection must drive coverage without an extra runner flag.
     ./bin/run-coverage
+    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-php-report.php
     ./bin/application-compose exec -T runner node tests/verify-demo.cjs
     ./bin/application-compose exec -T runner node tests/verify-scenarios.cjs
     ./bin/application-compose exec -T runner node tests/verify-e2e.cjs

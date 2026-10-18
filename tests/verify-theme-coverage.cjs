@@ -14,7 +14,7 @@ const phpFiles = [...fs.readFileSync('coverage/php/clover.xml', 'utf8').matchAll
 const js = read('coverage/js/coverage-summary.json');
 const templates = read('coverage/templates/coverage-summary.json').templates;
 assert.ok(phpFiles.length > 0, 'PHP report has no source files');
-for (const file of phpFiles) assert.match(file, /^\/var\/www\/html\/app\/(code|design)\//, `PHP outside application scope: ${file}`);
+for (const file of phpFiles) assert.match(file, /^\/source\/app\/(code|design)\//, `PHP outside application scope: ${file}`);
 for (const file of Object.keys(js).filter(file => file !== 'total')) assert.match(file, /^\/workspace\/src\/app\/(code|design)\//, `JavaScript outside application scope: ${file}`);
 for (const file of templates) assert.match(file.path, /^app\/(code|design)\//, `Template outside application scope: ${file.path}`);
 const themeRoot = `app/design/frontend/${theme}/`;

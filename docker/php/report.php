@@ -3,16 +3,14 @@ declare(strict_types=1);
 require '/opt/report/vendor/autoload.php';
 require __DIR__ . '/manifest.php';
 require __DIR__ . '/collection.php';
+require __DIR__ . '/report-data.php';
 stopCoverageCollection();
 
-use SebastianBergmann\CodeCoverage\CodeCoverage;
-use SebastianBergmann\CodeCoverage\Filter;
-use SebastianBergmann\CodeCoverage\Driver\Selector;
-use SebastianBergmann\CodeCoverage\Data\RawCodeCoverageData;
 use SebastianBergmann\CodeCoverage\Report\Html\Facade;
 use SebastianBergmann\CodeCoverage\Report\Clover;
 
-$run = json_decode(file_get_contents('/coverage/run.json'), true, flags: JSON_THROW_ON_ERROR)['id'];
+$runData = json_decode(file_get_contents('/coverage/run.json'), true, flags: JSON_THROW_ON_ERROR);
+$run = $runData['id'];
 $state = json_decode(file_get_contents('/coverage/collector.json'), true, flags: JSON_THROW_ON_ERROR);
 $records = glob("/coverage/raw/php/$run/*.pcov");
 if (!$records || glob("/coverage/raw/php/$run/*.error")) {
@@ -62,20 +60,16 @@ if ($state['manifest']) {
         pcov_atomic_publish($state['manifestPointer'], $state['manifestTarget']);
     }
 }
-$filter = new Filter;
-foreach (array_keys($state['scope']) as $file) $filter->includeFile($file);
-$coverage = new CodeCoverage((new Selector)->forLineCoverage($filter), $filter);
-$coverage->includeUncoveredFiles();
-// This standard raw-data API accepts PCOV's identical -1/1 line format.
-// Its method name does not mean Xdebug is installed or used.
-$coverage->append(RawCodeCoverageData::fromXdebugWithoutPathCoverage($merged), "Cypress HTTP run $run");
+$runner = ($runData['runner'] ?? 'cypress') === 'playwright' ? 'Playwright' : 'Cypress';
+$coverage = applicationPhpReportData($state['scope'], $merged, $runData['sources'], "$runner HTTP run $run");
 (new Facade)->process($coverage, '/coverage/php');
 (new Clover)->process($coverage, '/coverage/php/clover.xml');
 $report = $coverage->getReport();
 $total = $report->numberOfExecutableLines();
 $covered = $report->numberOfExecutedLines();
 file_put_contents('/coverage/php/coverage-summary.json', json_encode([
-    'run' => $run, 'metric' => 'lines', 'total' => $total, 'covered' => $covered,
+    'run' => $run, 'metric' => 'lines', 'lineScope' => 'php-only', 'sourceRoot' => '/source',
+    'total' => $total, 'covered' => $covered,
     'percent' => $total ? round(100 * $covered / $total, 2) : 0, 'requests' => $requests,
     'collection' => $state['manifest'] ? 'manifest' : 'full-discovery',
     'deploymentId' => $state['identity']['id'], 'manifest' => $state['manifestTarget'],
@@ -83,4 +77,9 @@ file_put_contents('/coverage/php/coverage-summary.json', json_encode([
     'undiscovered' => array_values(array_diff(array_keys($state['scope']), array_keys($merged))),
 ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n");
 file_put_contents('/coverage/php/merged-lines.json', json_encode($merged, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+$lines = [];
+foreach ($coverage->getData()->lineCoverage() as $file => $hits) {
+    $lines[substr($file, strlen('/source/'))] = (object) array_map(static fn(?array $tests): int => $tests ? 1 : 0, $hits);
+}
+file_put_contents('/coverage/php/line-coverage.json', json_encode($lines, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n");
 printf("PHP: %d/%d lines (%.2f%%), %d HTTP records\n", $covered, $total, $total ? 100 * $covered / $total : 0, count($records));
