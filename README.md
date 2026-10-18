@@ -246,3 +246,8 @@ No. MageLens installs a local developer environment with coverage instrumentatio
 - [Magento 2 and Adobe Commerce PhpStorm plugin](https://github.com/VitaliyBoyko/magento2-phpstorm-plugin): code navigation, inspections, generators and Magento MCP tools for working with the source.
 
 For reproducible setup or reporting problems, [open an issue](https://github.com/VitaliyBoyko/MageLens/issues) with the MageLens version, theme, runner and relevant diagnostics. See [releases](https://github.com/VitaliyBoyko/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
+
+## Repository navigation for AI agents
+
+See [AGENTS.md](AGENTS.md) for the architecture map, source entry points, validation commands and contribution constraints.
+
