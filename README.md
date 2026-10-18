@@ -2,9 +2,9 @@
   <img src="assets/magelens.svg" alt="MageLens logo" width="320">
 </p>
 
-# MageLens
+# MageLens: Magento 2 E2E code coverage with Docker
 
-**Quickly bootstrap Magento with code coverage.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
+**See which PHP, JavaScript and templates your Magento 2 end-to-end tests execute.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
 
 Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
@@ -208,3 +208,29 @@ Avoid changing application data while the tests run. See the [coverage guide](do
 | `coverage/` | Generated reports and badges |
 | [Blog demo](src/app/code/Application/Blog/README.md) | Example application exercising all three collectors |
 | [Coverage guide](docs/coverage.md) | Collector details and customization |
+
+## FAQ
+
+### Do I need PHP, Composer or Node installed on my host?
+
+The application, dependencies, selected test runner and report tools run in Docker. Install the host tools listed in [requirements](#requirements), and provide Magento Marketplace credentials.
+
+### Can I use my own Magento modules and themes?
+
+Yes. [Copy modules or themes](#copy-custom-modules-or-themes), or [copy a complete project before installation](#copy-a-complete-magento-project), then add scenarios for the selected runner. Coverage follows the configured theme scope; vendor packages require an explicit `vendorRoots` entry.
+
+### Why are PHP, JavaScript and template percentages different?
+
+They measure different source operations. PHP uses executable lines, whole-file JavaScript uses Istanbul statements, and template coverage measures bindings and inline scripts with DOM presence reported separately. See the [coverage guide](docs/coverage.md); the percentages are not interchangeable.
+
+### Is this a production deployment setup?
+
+No. MageLens installs a local developer environment with coverage instrumentation, disabled caches and development authentication settings. Use it for testing and inspecting coverage.
+
+## Related tools and support
+
+- [Magento template coverage](https://github.com/VitaliyBoyko/magento-template-coverage): the standalone Cypress/Playwright template collector used here.
+- [PCOV fork](https://github.com/VitaliyBoyko/pcov): PHP line coverage with native export and manifest reuse, selected in `dependencies.yaml`.
+- [Magento 2 and Adobe Commerce PhpStorm plugin](https://github.com/VitaliyBoyko/magento2-phpstorm-plugin): code navigation, inspections, generators and Magento MCP tools for working with the source.
+
+For reproducible setup or reporting problems, [open an issue](https://github.com/VitaliyBoyko/MageLens/issues) with the MageLens version, theme, runner and relevant diagnostics. See [releases](https://github.com/VitaliyBoyko/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
