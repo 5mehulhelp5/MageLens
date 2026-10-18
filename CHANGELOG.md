@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.3.1 - 2026-10-18
+
+- Add `withCoverage(test)` to preserve existing Playwright fixtures while collecting PHP, JavaScript and template coverage.
+- Keep external suite selection explicit in the project configuration. The presence of an elgentos directory no longer changes MageLens’s default fixture or path aliases.
+
 ## 1.3.0 - 2026-10-18
 
 - Make `--hyva` install the CSP theme with enforced storefront script policy. Use `--hyva --nocsp` for the legacy theme with either runner.

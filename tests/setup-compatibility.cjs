@@ -10,3 +10,13 @@ fs.writeFileSync(`${directory}/tsconfig.json`, JSON.stringify({compilerOptions: 
         '@poms/*': ['./base-tests/poms/*'], '@types/*': ['./base-tests/types/*'], '@fixtures/*': ['./base-tests/fixtures/*']}}}, null, 2));
 const packageFile = path.join(path.dirname(require.resolve('@vitaliiboiko/magento-template-coverage')), '../package.json');
 fs.writeFileSync('.runtime/template-package-version', JSON.parse(fs.readFileSync(packageFile)).version + '\n');
+
+// Only this isolated compatibility installation opts into the external fixture.
+fs.writeFileSync(`${directory}/support.cjs`, `const {withCoverage, expect} = require('../../playwright/support.cjs');
+const {guestTest} = require('./base-tests/utils/fixtures.utils.ts');
+const external = guestTest.extend({externalFixture: async ({}, use) => use('elgentos-guest')});
+module.exports = {test: withCoverage(external), expect};
+`);
+fs.appendFileSync('playwright.config.cjs', `
+module.exports.tsconfig = '.runtime/elgentos/tsconfig.json';
+`);

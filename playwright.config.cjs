@@ -1,6 +1,5 @@
 const {defineConfig} = require('@playwright/test');
 const {specPatterns} = require('./bin/project.cjs');
-const fs = require('node:fs');
 module.exports = defineConfig({
     testDir: '.',
     testMatch: specPatterns('playwright'),
@@ -12,7 +11,6 @@ module.exports = defineConfig({
     expect: {timeout: 15000},
     reporter: [['list'], ['./playwright/reporter.cjs']],
     outputDir: 'coverage/playwright-artifacts',
-    ...(fs.existsSync('.runtime/elgentos/tsconfig.json') ? {tsconfig: '.runtime/elgentos/tsconfig.json'} : {}),
     use: {
         browserName: 'chromium',
         baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.CYPRESS_BASE_URL || 'https://magelens.test',

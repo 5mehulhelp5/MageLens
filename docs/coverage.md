@@ -123,3 +123,25 @@ Detailed HTML reports live in `coverage/php/`, `coverage/js/`, and `coverage/tem
 For collection details, inspect PHP records under `coverage/raw/php/<run-id>/`, template observations under `coverage/raw/templates/`, and JavaScript counters in `.nyc_output/out.json`. Each run creates fresh execution records.
 
 Reports and raw artifacts are ignored by Git. The SVGs in `coverage/badges/` can be committed with the README. To share browsable reports, copy the entire `coverage/` directory so relative links continue to work.
+
+## Use an existing Playwright fixture
+
+MageLens supplies Playwright and the coverage collectors. To preserve a suite's
+login, consent or other custom fixtures, wrap each test object explicitly:
+
+```js
+const {withCoverage, expect} = require('./playwright/support.cjs');
+const {test: authenticated, guestTest} = require('./your-tests/fixtures');
+module.exports = {
+    test: withCoverage(authenticated),
+    guestTest: withCoverage(guestTest),
+    expect
+};
+```
+
+Adjust the import paths for your adapter. Have the specs import this adapter,
+and select their files and path aliases in `playwright.config.cjs`. MageLens does
+not discover external fixture directories or replace its default fixture.
+Keep external test sources in their own checkout; their package manifest and
+installation scripts are not required to run them with MageLens. Any helper
+libraries imported by those tests must also be available to the runner.

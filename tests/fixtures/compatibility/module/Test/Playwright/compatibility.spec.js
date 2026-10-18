@@ -1,6 +1,7 @@
 const {verifyScriptPolicy} = require('../csp-proof');
-const {test, expect} = require('../../../../../../../playwright/support.cjs');
-test('collects real PHP, JavaScript and template execution', async ({page}) => {
+const {test, expect} = require('../../../../../../../.runtime/elgentos/support.cjs');
+test('collects real PHP, JavaScript and template execution', async ({page, externalFixture}) => {
+    expect(externalFixture).toBe('elgentos-guest');
     const response = await page.goto('/coverageprobe/');
     if (process.env.MAGELENS_THEME === 'hyva') {
         const policy = response.headers()['content-security-policy'];
