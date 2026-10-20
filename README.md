@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.2.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.3.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -35,7 +35,7 @@ The command above installs Luma with Cypress. For another combination, append th
 | `./install.sh --hyva --nocsp` | Legacy Hyvä | Cypress |
 | `./install.sh --hyva --nocsp --playwright` | Legacy Hyvä | Playwright |
 
-Each installation includes only its selected runner, browser download and runner tooling. Playwright installs have no Cypress desktop/viewer. The installer saves the selection; `./bin/run-coverage` uses it automatically. Repeat the same flags when rerunning installation; omitted flags select Luma/Cypress.
+Each installation includes its selected runner and browser, with the same live viewer for Cypress and Playwright. Both run entirely in Docker. The installer saves the selection; `./bin/run-coverage` uses it automatically. Repeat the same flags when rerunning installation; omitted flags select Luma/Cypress.
 
 Hyvä replaces the active storefront theme. Magento's bundled Luma/Blank packages remain part of Magento; the installer does not remove core files. Hyvä is downloaded only for `--hyva`.
 
@@ -68,12 +68,12 @@ With the default domain and ports:
 | Magento storefront | https://magelens.test/ |
 | Magento Admin | https://magelens.test/admin/ |
 | Demonstration blog | https://magelens.test/blog/ |
-| Live Cypress runner | https://magelens.test:6080/ |
+| Live test runner (Cypress or Playwright) | https://magelens.test:6080/ |
 | Combined coverage report, after a successful test run | `coverage/index.html` on your machine |
 
 Fresh installations create the Admin account `application` / `ApplicationOnly123456!`. Demo features and usage are documented in the [blog README](src/app/code/Application/Blog/README.md).
 
-For Cypress installations, open the live runner before starting `./bin/run-coverage` to watch the browser. The viewer is read-only. Use your selected domain in these URLs if you changed it during setup.
+Open the live runner before starting `./bin/run-coverage` to watch either runner's browser through noVNC. The viewer is read-only. Use your selected domain in these URLs if you changed it during setup.
 
 ## Requirements
 
@@ -81,7 +81,7 @@ For Cypress installations, open the live runner before starting `./bin/run-cover
 - Linux or macOS. Allocate at least **6 GB RAM** to Docker (8 GB recommended) and roughly **15 GB free disk** for the first build.
 - Internet access for container images, Composer/npm dependencies, and the selected browser download.
 - Magento Marketplace public/private keys for `repo.magento.com`.
-- Free local ports **80** and **443**, plus **6080** for the Cypress viewer. Configure `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT`, and `CYPRESS_VIEW_PORT` in `.env` to use different ports.
+- Free local ports **80** and **443**, plus **6080** for the live test viewer. Configure `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT`, and `RUNNER_VIEW_PORT` in `.env` to use different ports. Existing `CYPRESS_VIEW_PORT` settings still work for both runners; `RUNNER_VIEW_PORT` takes precedence when set.
 
 Installation uses Mark Shust's `bin/setup-composer-auth`. It reuses Composer credentials from the container or host, or asks for **Username** (public key) and **Password** (private key). Credentials are stored in the local `composerdata` Docker volume. To configure them separately after the PHP service starts, run `bin/setup-composer-auth`.
 
@@ -107,7 +107,7 @@ Read the [coverage guide](docs/coverage.md) for report semantics, collection det
 
 ## Magento environment
 
-MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the selected runner; only Cypress includes the live desktop.
+MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the selected runner and its live desktop.
 
 Magento is installed through Composer. Its modules, framework, and themes live in `src/vendor/magento/`; client modules live in `src/app/code/`. Magento runs in developer mode, generating code and static assets on demand, with page and block caches disabled for coverage collection.
 
@@ -179,12 +179,16 @@ Rerun `./install.sh` with the same theme and runner flags after module or theme 
 
 ## Everyday commands
 
-Run these from the repository root:
+Run these from the repository root. The test, viewer, and service commands work the same way with Cypress and Playwright:
 
 ```bash
-./install.sh                              # install or refresh, retaining existing data
-./install.sh shop.test                    # configure a different local domain
+./install.sh                              # install Luma/Cypress; repeat your flags to refresh another mode
+./install.sh shop.test                    # configure a different local domain; include your theme/runner flags
 ./bin/run-coverage                        # full suite, fresh reports, and badges
+./bin/run-coverage --start                # start stopped services, then run the full suite
+./bin/runner node --version               # use the selected runner's container tools
+./bin/runner npm --version
+./bin/runner bash                         # shell in the selected runner container
 ./bin/application-compose logs app phpfpm # inspect nginx and PHP logs
 ./bin/application-compose logs runner     # inspect browser runner startup
 ./bin/application-compose stop            # stop this project's services
@@ -195,11 +199,13 @@ bin/bash
 bin/status
 ```
 
-Installation makes Mark Shust's command-line tools available in `bin/`, connected to this project's Docker services. If you have npm on the host, `npm run cy:coverage` runs the coverage command.
+Use `./bin/run-coverage` for tests and reports, and `./bin/runner COMMAND` for commands in the selected runner container. Neither requires host Node, npm, browsers, or a graphical desktop. The live viewer is available at `https://magelens.test:6080/` with either runner.
+
+Installation also makes Mark Shust's Magento tools available in `bin/`. Commands such as `bin/magento`, `bin/composer`, `bin/node`, and `bin/npm` operate on the Magento application in `src/`; use `./bin/runner node` or `./bin/runner npm` for the test workspace. If you already have npm on the host, `npm run coverage` is an optional alias for `./bin/run-coverage`; the older `npm run cy:coverage` alias remains supported with either runner.
 
 The default Docker project name is `magelens`. To run multiple copies, set a unique `COMPOSE_PROJECT_NAME`, `APPLICATION_DOMAIN`, and host ports in each `.env` before installing. Keep the project name unchanged when reusing its database volumes.
 
-Rerun `./install.sh` to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
+Rerun `./install.sh` with your theme and runner flags to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
 
 Avoid changing application data while the tests run. See the [coverage guide](docs/coverage.md#run-lifecycle) for optional refreshes and recovery.
 
@@ -250,4 +256,3 @@ For reproducible setup or reporting problems, [open an issue](https://github.com
 ## Repository navigation for AI agents
 
 See [AGENTS.md](AGENTS.md) for the architecture map, source entry points, validation commands and contribution constraints.
-

@@ -32,7 +32,7 @@ mkdir -p "$artifacts"
 export COMPOSE_PROJECT_NAME="$project" APPLICATION_DOMAIN="$project.test"
 export APPLICATION_PORT=${MAGELENS_TEST_PORT:-18080}
 export APPLICATION_HTTPS_PORT=${MAGELENS_TEST_HTTPS_PORT:-18443}
-export CYPRESS_VIEW_PORT=${MAGELENS_TEST_VIEW_PORT:-16080}
+export RUNNER_VIEW_PORT=${MAGELENS_TEST_VIEW_PORT:-16080}
 
 cleanup() {
     local result=$?
@@ -87,8 +87,8 @@ if [[ -n "${MAGELENS_TEMPLATE_COVERAGE_PACKAGE:-}" ]]; then
     cp "$MAGELENS_TEMPLATE_COVERAGE_PACKAGE" "$scratch/.runtime/template-coverage.tgz"
 fi
 cd "$scratch"
-printf 'COMPOSE_PROJECT_NAME=%s\nAPPLICATION_DOMAIN=%s\nAPPLICATION_PORT=%s\nAPPLICATION_HTTPS_PORT=%s\nCYPRESS_VIEW_PORT=%s\n' \
-    "$project" "$APPLICATION_DOMAIN" "$APPLICATION_PORT" "$APPLICATION_HTTPS_PORT" "$CYPRESS_VIEW_PORT" > .env
+printf 'COMPOSE_PROJECT_NAME=%s\nAPPLICATION_DOMAIN=%s\nAPPLICATION_PORT=%s\nAPPLICATION_HTTPS_PORT=%s\nRUNNER_VIEW_PORT=%s\n' \
+    "$project" "$APPLICATION_DOMAIN" "$APPLICATION_PORT" "$APPLICATION_HTTPS_PORT" "$RUNNER_VIEW_PORT" > .env
 # Isolate the PHP image tag too; the runner already uses the Compose project name.
 sed 's|^    image: magelens-php:.*|    image: ${COMPOSE_PROJECT_NAME}-php:e2e|' compose.yaml > compose.yaml.tmp
 mv compose.yaml.tmp compose.yaml
@@ -106,23 +106,32 @@ docker run --rm --user root --entrypoint sh \
 
 (
     ./install.sh --container-only "${install_options[@]}" "$APPLICATION_DOMAIN"
-    ./bin/application-compose exec -T runner node tests/verify-installation.cjs "$theme" "$runner"
+    ./bin/runner node tests/verify-installation.cjs "$theme" "$runner"
+    bash tests/runner-container.sh "$(./bin/application-compose images -q runner)"
+    # Verify HTTPS routing through nginx, including the read-only viewer redirect.
+    ./bin/application-compose exec -T phpfpm bash -c '
+        set -euo pipefail
+        url=$(bash /application/docker/php/base-url.sh --print-viewer)
+        curl --fail --silent --show-error --insecure "$url" --head | grep -F "view_only=1"
+        html=$(curl --fail --silent --show-error --insecure "${url}vnc.html")
+        [[ "$html" == *noVNC* ]]
+    '
     ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme"
-    ./bin/application-compose exec -T runner node tests/dependencies.test.cjs
+    ./bin/runner node tests/dependencies.test.cjs
     ./bin/application-compose exec -T -e MAGELENS_REPORT_DATA=/application/docker/php/report-data.php phpfpm \
         php -d pcov.directory=/tmp -d pcov.exclude= /application/docker/php/e2e/php-report.test.php
     if [[ "$runner" == playwright ]]; then
-        ./bin/application-compose exec -T runner npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @elgentos/magento2-playwright@7.1.0
-        ./bin/application-compose exec -T runner node tests/setup-compatibility.cjs
+        ./bin/runner npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @elgentos/magento2-playwright@7.1.0
+        ./bin/runner node tests/setup-compatibility.cjs
     fi
     ./bin/application-compose exec -T phpfpm bash /application/docker/php/refresh-assets.sh
     # The installer selection must drive coverage without an extra runner flag.
     ./bin/run-coverage
     ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-php-report.php
-    ./bin/application-compose exec -T runner node tests/verify-demo.cjs
-    ./bin/application-compose exec -T runner node tests/verify-scenarios.cjs
-    ./bin/application-compose exec -T runner node tests/verify-e2e.cjs
-    ./bin/application-compose exec -T runner node tests/verify-compatibility.cjs "$theme"
+    ./bin/runner node tests/verify-demo.cjs
+    ./bin/runner node tests/verify-scenarios.cjs
+    ./bin/runner node tests/verify-e2e.cjs
+    ./bin/runner node tests/verify-compatibility.cjs "$theme"
     mkdir -p "$artifacts/$runner"
     cp -a coverage "$artifacts/$runner/"
     if [[ -n "${MAGELENS_E2E_RESULT_FILE:-}" ]]; then printf '%s\n' "$artifacts/$runner/coverage" > "$MAGELENS_E2E_RESULT_FILE"; fi

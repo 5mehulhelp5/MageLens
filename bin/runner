@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [[ $# == 0 || "${1:-}" == --help || "${1:-}" == -h ]]; then
+    cat <<'HELP'
+Usage: ./bin/runner COMMAND [arguments...]
+
+Run a command in the installed Cypress or Playwright container.
+Services must be running; use ./bin/start if they are stopped.
+
+  ./bin/runner node --version
+  ./bin/runner npm --version
+  ./bin/runner bash
+
+Use ./bin/run-coverage for the full test suite and fresh coverage reports.
+HELP
+    exit 0
+fi
+exec ./bin/docker-compose exec runner "$@"

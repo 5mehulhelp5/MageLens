@@ -16,6 +16,7 @@ Read [README.md](README.md), [docs/coverage.md](docs/coverage.md) and [tests/REA
 | `compose.yaml`, `docker/php/Dockerfile`, `docker/runner/Dockerfile` | Services based on Mark Shust's Docker Magento and runner-specific images |
 | `bin/project.cjs`, `docker/php/project.php`, `docker/php/theme-scope.php` | Source/module/theme discovery and active coverage roots |
 | `bin/run-coverage` | Locked prepare → fixtures → warm-up → collection → tests → reports lifecycle |
+| `bin/runner`, `docker/runner/` | Shared Docker command helper, headed browser desktop, noVNC viewer and health checks for either runner |
 | `bin/prepare.cjs`, `bin/javascript-scope.cjs` | Disposable instrumentation, source hashes, zero-hit baselines and fresh run identity |
 | `docker/php/manifest.php`, `docker/php/collection.php`, `docker/php/collect.php` | PHP manifest preparation and HTTP collection |
 | `docker/php/report.php`, `docker/php/report-data.php` | PHP coverage reporting |
@@ -37,7 +38,8 @@ Run commands from the repository root. `package.json` defines:
 | `npm run test:integration` | Fast Node test suite: `node --test tests/*.test.cjs`; install locked npm dependencies first and inspect relevant tests for PHP/subprocess requirements |
 | `npm run test:e2e` | `bash tests/e2e-isolated.sh`: fresh temporary Magento installation, browser suite and report verification |
 | `npm run test:e2e:matrix` | `bash tests/e2e-matrix.sh`: six isolated Luma/Hyvä CSP/legacy Hyvä × Cypress/Playwright installations |
-| `./bin/run-coverage` | Full coverage run against an already installed, running environment; `npm run cy:coverage` is its alias, even when Playwright is selected |
+| `./bin/run-coverage` | Full Docker coverage run with the saved runner; `npm run coverage` and legacy `npm run cy:coverage` are host-side aliases |
+| `./bin/runner COMMAND` | Run Node, npm, a shell or another command in the selected runner container; upstream `bin/node` and `bin/npm` target the Magento application |
 
 For host-side integration dependencies, `npm ci --ignore-scripts` installs from the lockfile without downloading Cypress through its install hook; actual browser runs require their runner installation. Use `node --test tests/prepare.test.cjs` or another existing test file for a targeted check, then the integration suite for shared orchestration changes. PHP tests live in `tests/*.test.php`; inspect each bootstrap before selecting host versus container execution. Use `php -l`, `node --check` and `bash -n` on changed files as appropriate.
 
@@ -52,6 +54,7 @@ The checked-in GitHub workflow is release automation; do not assume a PR automat
 - Instrument disposable copies only; preserve original source bytes and PHP line numbers. Keep symlink rejection and final source-hash checks.
 - Do not bypass `.runtime/workflow.lock`, run install/coverage concurrently, or remove a lock without checking for an active workflow.
 - Warm-up occurs before collection in a separate browser. Fresh run IDs and zero-hit baselines must prevent stale or warm-up execution from inflating coverage.
+- Both runners use the same container desktop and read-only noVNC viewer, including headed warm-up. Keep helper commands and service lifecycle independent of runner choice. `RUNNER_VIEW_PORT` takes precedence over the legacy `CYPRESS_VIEW_PORT`; keep that fallback when updating Compose, nginx and viewer URLs. Runtime installation marker `3` requires older installs to rebuild before running headed Playwright.
 - Preserve fixture and collection cleanup on failure/interruption. Default coverage must not restart services, clear caches or refresh assets; those are explicit options.
 - PHP executable lines, whole-file JavaScript statements and template executable lines are separate metrics. Inline HTML/PHTML scripts belong to template coverage. DOM presence is separate from execution.
 - Keep eligible unvisited files uncovered, inactive themes excluded and vendor roots opt-in. Do not improve percentages by removing difficult files or bypassing required-execution checks.
@@ -61,5 +64,4 @@ The checked-in GitHub workflow is release automation; do not assume a PR automat
 
 ## Review expectations
 
-For orchestration changes, cover failure cleanup and both runner paths. For shared coverage changes, explain affected theme/runner combinations and use the isolated matrix when available. State exactly which checks passed, which needed unavailable credentials/images/services, and whether source preservation was verified. Exclude generated reports, runtime files and incidental README badge changes from unrelated PRs.
-
+For orchestration changes, cover failure cleanup and both runner paths. The isolated matrix checks shared viewer access and desktop/browser recovery after graceful and forced stops in all six modes. For shared coverage changes, explain affected theme/runner combinations and use the isolated matrix when available. State exactly which checks passed, which needed unavailable credentials/images/services, and whether source preservation was verified. Exclude generated reports, runtime files and incidental README badge changes from unrelated PRs.

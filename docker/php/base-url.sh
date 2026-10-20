@@ -9,7 +9,7 @@ if [[ "${1:---print}" == --print ]]; then
     exit 0
 fi
 if [[ "${1:-}" == --print-viewer ]]; then
-    printf 'https://%s:%s/\n' "${APPLICATION_DOMAIN:-magelens.test}" "${CYPRESS_VIEW_PORT:-6080}"
+    printf 'https://%s:%s/\n' "${APPLICATION_DOMAIN:-magelens.test}" "${RUNNER_VIEW_PORT:-${CYPRESS_VIEW_PORT:-6080}}"
     exit 0
 fi
 printf 'Usage: base-url.sh [--print|--print-viewer]\n' >&2

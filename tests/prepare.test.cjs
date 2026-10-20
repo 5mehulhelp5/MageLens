@@ -179,7 +179,7 @@ test('template package owns PHTML bindings and scripts, while JS scope contains 
 
 test('nginx uses the selected ports and rejects collisions and invalid ports', () => {
     const template = fs.readFileSync(`${projectRoot}/docker/nginx.conf`, 'utf8');
-    const config = nginxConfig(template, {APPLICATION_PORT: '8088', APPLICATION_HTTPS_PORT: '8443', CYPRESS_VIEW_PORT: '6090'});
+    const config = nginxConfig(template, {APPLICATION_PORT: '8088', APPLICATION_HTTPS_PORT: '8443', RUNNER_VIEW_PORT: '6090'});
     assert.match(config, /listen 8088;/);
     assert.match(config, /listen 8443 ssl;/);
     assert.match(config, /listen 6090 ssl;/);
@@ -188,9 +188,15 @@ test('nginx uses the selected ports and rejects collisions and invalid ports', (
 });
 
 
-test('Playwright nginx configuration has no Cypress viewer', () => {
+test('both runners expose the same read-only viewer and accept the legacy port setting', () => {
     const template = fs.readFileSync(`${projectRoot}/docker/nginx.conf`, 'utf8');
-    const config = nginxConfig(template, {MAGELENS_RUNNER: 'playwright'});
-    assert.doesNotMatch(config, /runner:6080|vnc.html|listen 6080/);
-    assert.match(config, /listen 443 ssl/);
+    for (const runner of ['cypress', 'playwright']) {
+        const config = nginxConfig(template, {MAGELENS_RUNNER: runner, CYPRESS_VIEW_PORT: '6090'});
+        assert.match(config, /listen 6090 ssl/);
+        assert.match(config, /http:\/\/runner:6080/);
+        assert.match(config, /vnc.html\?autoconnect=1&resize=scale&view_only=1&reconnect=1/);
+        const preferred = nginxConfig(template, {MAGELENS_RUNNER: runner, CYPRESS_VIEW_PORT: '6090', RUNNER_VIEW_PORT: '6091'});
+        assert.match(preferred, /listen 6091 ssl/);
+        assert.throws(() => nginxConfig(template, {MAGELENS_RUNNER: runner, RUNNER_VIEW_PORT: '443'}), /different/);
+    }
 });

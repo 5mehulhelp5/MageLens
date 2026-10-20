@@ -44,6 +44,12 @@ for shutdown in graceful forced forced; do
     fi
     docker start "$container" >/dev/null
     ready
-    docker exec "$container" cypress verify
-    echo "PASS: desktop, VNC, viewer, and Cypress recovered after $shutdown shutdown."
+    docker exec "$container" bash -c '
+        if [[ "$MAGELENS_RUNNER" == playwright ]]; then
+            node -e "require(\"@playwright/test\").chromium.launch({headless:false}).then(async browser=>{const page=await browser.newPage();await page.setContent(\"<title>Desktop check</title>\");await browser.close()}).catch(error=>{console.error(error);process.exitCode=1})"
+        else
+            cypress verify
+        fi
+    '
+    echo "PASS: desktop, VNC, viewer, and selected browser recovered after $shutdown shutdown."
 done

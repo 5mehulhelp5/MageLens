@@ -101,8 +101,7 @@ function writeChanged(file, content) {
 }
 
 function nginxConfig(template, environment = process.env) {
-    if (environment.MAGELENS_RUNNER === 'playwright') template = template.replace(/# cypress-viewer:start[\s\S]*?# cypress-viewer:end\n?/, '');
-    const defaults = {APPLICATION_PORT: '80', APPLICATION_HTTPS_PORT: '443', CYPRESS_VIEW_PORT: '6080'};
+    const defaults = {APPLICATION_PORT: '80', APPLICATION_HTTPS_PORT: '443', RUNNER_VIEW_PORT: environment.CYPRESS_VIEW_PORT || '6080'};
     const ports = Object.entries(defaults).map(([key, fallback]) => [key, environment[key] || fallback]);
     for (const [key, value] of ports) {
         if (!/^[0-9]+$/.test(value) || Number(value) < 1 || Number(value) > 65535) throw new Error(`Invalid ${key}`);

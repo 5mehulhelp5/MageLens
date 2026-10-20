@@ -1,6 +1,6 @@
 # MageLens coverage
 
-Run `./bin/run-coverage` from the repository root, then open `coverage/index.html`. The command runs the full suite for the runner selected during installation and generates PHP, JavaScript, and HTML template reports. See the [quick start](../README.md#quick-start) for installation.
+Run `./bin/run-coverage` from the repository root, then open `coverage/index.html`. The command runs the full suite for the runner selected during installation and generates PHP, JavaScript, and HTML template reports. Cypress and Playwright both run in Docker, with a browser visible through the live viewer. See the [quick start](../README.md#quick-start) for installation.
 
 ## Coverage scope
 
@@ -44,9 +44,11 @@ If a process is forcibly terminated, check for active installation or coverage p
 
 ## Watch a test run
 
-For Cypress installations, open `https://magelens.test:6080/`, then start `./bin/run-coverage` in your terminal. The viewer shows the Cypress browser as tests execute. Between runs, it displays a waiting screen. Viewing is read-only, so watching a run does not send mouse or keyboard input to the tests. Playwright installations run headlessly and do not install or expose this viewer; failure traces and screenshots are saved under `coverage/playwright-artifacts/`.
+Open `https://magelens.test:6080/`, then start `./bin/run-coverage` in your terminal. For both Cypress and Playwright, the noVNC viewer shows the browser running inside Docker during warm-up and tests. Between runs, it displays a waiting screen. Viewing is read-only, so watching a run does not send mouse or keyboard input to the tests. You do not need a browser installation or graphical desktop on the host to execute tests.
 
-Use your configured `APPLICATION_DOMAIN` and `CYPRESS_VIEW_PORT` if they differ from the defaults. The viewer starts with the environment; use `--start` if it is stopped.
+Use your configured `APPLICATION_DOMAIN` and `RUNNER_VIEW_PORT` if they differ from the defaults. The legacy `CYPRESS_VIEW_PORT` setting remains supported when `RUNNER_VIEW_PORT` is unset. The viewer starts with the environment; use `./bin/run-coverage --start` if it is stopped.
+
+Failure screenshots are saved under `cypress/screenshots/` for Cypress. Playwright saves failure screenshots and traces under `coverage/playwright-artifacts/`. Use `./bin/runner COMMAND` to run tools in either selected runner's container; see [everyday commands](../README.md#everyday-commands).
 
 Both runners fail tests on uncaught application errors. Cypress disables cross-document view-transition animations inside its test frame so navigation between Hyvä and Admin remains reliable. This does not change normal storefront browsing; animation behavior is outside the bundled acceptance checks.
 

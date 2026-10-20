@@ -35,17 +35,8 @@ fi
 lock_workflow
 rm -f .runtime/installed
 printf '%s %s\n' "$MAGELENS_THEME" "$MAGELENS_RUNNER" > .runtime/install-profile
-if [[ "$MAGELENS_RUNNER" == playwright ]]; then
-    cat > .runtime/compose.runner.yaml <<'YAML'
-services:
-  app:
-    ports: !override
-      - "127.0.0.1:${APPLICATION_PORT:-80}:${APPLICATION_PORT:-80}"
-      - "127.0.0.1:${APPLICATION_HTTPS_PORT:-443}:${APPLICATION_HTTPS_PORT:-443}"
-YAML
-else
-    rm -f .runtime/compose.runner.yaml
-fi
+# Retire the old Playwright overlay that disabled the live viewer.
+rm -f .runtime/compose.runner.yaml
 mkdir -p .runtime/template-package
 # Always include this directory in the Docker context; tarballs are optional.
 touch .runtime/template-package/.keep
@@ -58,7 +49,7 @@ else
     rm -f .runtime/template-coverage.tgz .runtime/template-package/template-coverage.tgz
 fi
 if [[ ! -f .env ]]; then
-    printf 'COMPOSE_PROJECT_NAME=magelens\nAPPLICATION_PORT=80\nAPPLICATION_HTTPS_PORT=443\nCYPRESS_VIEW_PORT=6080\n' > .env
+    printf 'COMPOSE_PROJECT_NAME=magelens\nAPPLICATION_PORT=80\nAPPLICATION_HTTPS_PORT=443\nRUNNER_VIEW_PORT=6080\n' > .env
 fi
 source "$ROOT/bin/application-domain"
 configure_application_domain .env "$requested_domain"
@@ -132,11 +123,11 @@ dc exec -T phpfpm bash /application/docker/php/refresh-assets.sh
 if [[ "$MAGELENS_RUNNER" == cypress ]]; then
     dc exec -T runner cypress verify
 else
-    dc exec -T runner node -e "require('@vitaliiboiko/magento-template-coverage/playwright');require('@playwright/test').chromium.launch().then(browser=>browser.close()).catch(error=>{console.error(error);process.exitCode=1})"
+    dc exec -T runner node -e "require('@vitaliiboiko/magento-template-coverage/playwright');require('@playwright/test').chromium.launch({headless:false}).then(browser=>browser.close()).catch(error=>{console.error(error);process.exitCode=1})"
 fi
 dc exec -T app sh -c 'curl --fail --silent --show-error --insecure --retry 30 --retry-connrefused \
     --retry-delay 2 --max-time 5 --output /dev/null "https://localhost:$APPLICATION_HTTPS_PORT/"'
-printf '2\n' > .runtime/installed
+printf '3\n' > .runtime/installed
 say "MageLens is ready. Open $(dc exec -T phpfpm bash /application/docker/php/base-url.sh --print)"
-if [[ "$MAGELENS_RUNNER" == cypress ]]; then say "Watch Cypress at $(dc exec -T phpfpm bash /application/docker/php/base-url.sh --print-viewer)"; fi
+say "Watch tests at $(dc exec -T phpfpm bash /application/docker/php/base-url.sh --print-viewer)"
 printf 'Installed %s with %s. Run ./bin/run-coverage (no host Node required).\n' "$MAGELENS_THEME" "$MAGELENS_RUNNER"

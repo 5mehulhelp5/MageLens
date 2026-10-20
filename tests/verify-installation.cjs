@@ -15,7 +15,11 @@ for (const name of rejected) {
 }
 assert.equal(fs.existsSync('/opt/cypress'), runner === 'cypress', 'Cypress browser cache must exist only in Cypress installs');
 assert.equal(fs.existsSync('/opt/playwright'), runner === 'playwright', 'Playwright browser cache must exist only in Playwright installs');
-assert.equal(fs.existsSync('/usr/share/novnc'), runner === 'cypress', 'The desktop viewer belongs only to Cypress');
+assert.ok(fs.existsSync('/usr/share/novnc'), 'Both runners need the desktop viewer');
+assert.ok(process.env.DISPLAY, 'Both runners need a container display');
+require('node:child_process').execFileSync('xdpyinfo', ['-display', process.env.DISPLAY]);
+require('node:child_process').execFileSync(process.execPath, ['/opt/magelens/healthcheck.cjs']);
+if (runner === 'playwright') assert.equal(require('../playwright.config.cjs').use.headless, false);
 assert.equal(fs.readFileSync('.runtime/install-profile', 'utf8').trim(), `${theme} ${runner}`);
 const composer = JSON.parse(fs.readFileSync('src/composer.lock'));
 assert.equal(composer.packages.some(pkg => pkg.name === 'hyva-themes/magento2-default-theme'), theme === 'hyva-legacy');

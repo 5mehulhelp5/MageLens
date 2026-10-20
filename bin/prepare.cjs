@@ -98,7 +98,7 @@ function prepare({plain = false, runtimeOnly = false, themeRoots} = {}) {
     fs.copyFileSync('.runtime/template-manifest.json', 'coverage/template-manifest.json');
     setBadgeSection('Coverage has not completed for the current run.');
     console.log(`Prepared fresh coverage run ${run.id}.`);
-    if (run.runner === 'cypress' && process.env.APPLICATION_DOMAIN) console.log(`Watch Cypress at https://${process.env.APPLICATION_DOMAIN}:${process.env.CYPRESS_VIEW_PORT || 6080}/`);
+    if (process.env.APPLICATION_DOMAIN) console.log(`Watch tests at https://${process.env.APPLICATION_DOMAIN}:${process.env.RUNNER_VIEW_PORT || process.env.CYPRESS_VIEW_PORT || 6080}/`);
 }
 
 if (require.main === module) {

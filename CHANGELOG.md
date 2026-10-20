@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.3.3 - 2026-10-20
+
+- Watch both Cypress and Playwright through the same read-only noVNC viewer. Warm-up and tests run with a visible browser inside Docker, using the same start, stop, and coverage commands.
+- Use `./bin/runner COMMAND` for tools in the selected test container, and `npm run coverage` as an optional host-side alias for `./bin/run-coverage`. The existing `npm run cy:coverage` alias still works.
+- Configure the viewer with `RUNNER_VIEW_PORT`. Existing `CYPRESS_VIEW_PORT` settings remain supported for either runner.
+- Check viewer access and browser recovery after container restarts in all six theme/runner E2E flows.
+
+After updating, rerun `./install.sh` with your existing theme and runner flags (for example, `./install.sh --hyva --playwright`), then run `./bin/run-coverage`. This rebuilds the runner with the shared viewer and preserves existing application data.
+
 ## 1.3.2 - 2026-10-18
 
 - PHP coverage now counts executable PHP lines without counting emitted HTML or inline JavaScript as PHP execution.

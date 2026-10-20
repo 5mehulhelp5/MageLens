@@ -18,6 +18,6 @@ module.exports = defineConfig({
         viewport: {width: 1100, height: 900},
         screenshot: 'only-on-failure',
         trace: 'retain-on-failure',
-        headless: true
+        headless: false
     }
 });

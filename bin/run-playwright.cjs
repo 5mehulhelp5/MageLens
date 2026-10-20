@@ -4,7 +4,7 @@ const {chromium} = require('@playwright/test');
 
 async function main() {
     if (process.argv.includes('--warmup')) {
-        const browser = await chromium.launch();
+        const browser = await chromium.launch({headless: false});
         try {
             const page = await browser.newPage({ignoreHTTPSErrors: true});
             await require('@vitaliiboiko/magento-template-coverage/playwright').installTemplateRuntime(page.context());

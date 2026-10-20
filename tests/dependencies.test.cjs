@@ -146,6 +146,7 @@ test(`installer selects ${theme}/${runner} with ${containerOnly ? 'container-onl
     fs.writeFileSync(path.join(directory, '.runtime/docker-magento/compose/bin/setup-ssl'), '#!/bin/sh\nexec docker upstream-domain "$@"\n');
     fs.writeFileSync(path.join(directory, '.runtime/docker-magento/compose/bin/clinotty'), '#!/bin/sh\nexec docker compose exec -T phpfpm "$@"\n');
     fs.writeFileSync(path.join(directory, '.runtime/docker-magento/compose/env/local.env'), 'TEST=1\n');
+    fs.writeFileSync(path.join(directory, '.runtime/compose.runner.yaml'), 'services:\n  app:\n    ports: !override []\n');
     const commands = path.join(directory, 'commands');
     fs.mkdirSync(commands);
     const log = path.join(directory, 'commands.jsonl');
@@ -177,6 +178,7 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     assert.equal(build.theme, theme);
     assert.equal(build.runner, runner);
     assert.equal(fs.readFileSync(path.join(directory, '.runtime/install-profile'), 'utf8'), `${theme} ${runner}\n`);
+    assert.equal(fs.existsSync(path.join(directory, '.runtime/compose.runner.yaml')), false, 'Retire the overlay that hid the Playwright viewer');
     assert.equal(build.magento, '2.4.9');
     assert.equal(build.pcov, '2.2.0');
     assert.equal(build.php, 'markoshust/magento-php:8.5-fpm-1');
@@ -214,7 +216,9 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     }
     assert.match(fs.readFileSync(path.join(directory, '.env'), 'utf8'), /^APPLICATION_DOMAIN=shop\.magelens\.test$/m);
     assert.equal(calls.some(call => call.args.includes('exec') && call.args.includes('runner') && call.args.includes('cypress') && call.args.includes('verify')), runner === 'cypress');
-    assert.ok(fs.existsSync(path.join(directory, '.runtime/installed')));
+    assert.ok(calls.some(call => call.args.includes('--print-viewer')), 'Every runner advertises the viewer');
+    if (runner === 'playwright') assert.ok(calls.some(call => call.args.some(arg => arg.includes('chromium.launch({headless:false})'))));
+    assert.equal(fs.readFileSync(path.join(directory, '.runtime/installed'), 'utf8'), '3\n');
 });
 }
 }
@@ -241,10 +245,26 @@ test('Compose inherits service images and PHP from the selected Mark Shust confi
     assert.equal(config.services.phpfpm.environment.MAGENTO_VERSION, configured('MAGENTO_VERSION'));
     assert.equal(config.services.phpfpm.environment.APPLICATION_DOMAIN, 'magelens.test');
     assert.equal(config.services.phpfpm.environment.APPLICATION_HTTPS_PORT, '443');
-    assert.equal(config.services.phpfpm.environment.CYPRESS_VIEW_PORT, '6080');
+    assert.equal(config.services.phpfpm.environment.RUNNER_VIEW_PORT, '6080');
     assert.deepEqual(config.services.app.ports.map(port => [port.host_ip, port.published, port.target]),
         [['127.0.0.1', '80', 80], ['127.0.0.1', '443', 443], ['127.0.0.1', '6080', 6080]]);
     assert.ok(config.services.app.networks.default.aliases.includes('magelens.test'));
     assert.equal(config.services.runner.environment.CYPRESS_BASE_URL, 'https://magelens.test:443');
     assert.equal(config.services.runner.build.args.RUNNER_IMAGE, configured('RUNNER_IMAGE'));
+    for (const runner of ['cypress', 'playwright']) {
+        fs.writeFileSync(path.join(directory, '.runtime/install-profile'), `luma ${runner}\n`);
+        for (const [settings, port] of [
+            [{}, '6080'],
+            [{CYPRESS_VIEW_PORT: '6090'}, '6090'],
+            [{CYPRESS_VIEW_PORT: '6090', RUNNER_VIEW_PORT: '6091'}, '6091']
+        ]) {
+            const selected = JSON.parse(execFileSync('bash', ['bin/application-compose', 'config', '--format', 'json'], {
+                cwd: directory, encoding: 'utf8', env: {...process.env, CYPRESS_VIEW_PORT: '', RUNNER_VIEW_PORT: '', ...settings}
+            }));
+            assert.equal(selected.services.runner.build.target, runner);
+            assert.equal(selected.services.runner.environment.RUNNER_VIEW_PORT, port);
+            assert.equal(selected.services.phpfpm.environment.RUNNER_VIEW_PORT, port);
+            assert.ok(selected.services.app.ports.some(entry => entry.host_ip === '127.0.0.1' && entry.published === port && entry.target === Number(port)));
+        }
+    }
 });

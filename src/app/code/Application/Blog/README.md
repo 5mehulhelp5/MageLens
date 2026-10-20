@@ -6,11 +6,11 @@ Equivalent browser scenarios live in `Test/Cypress/` and `Test/Playwright/`; fix
 
 ## Try the demo
 
-From the repository root, run `./install.sh`, then `./bin/run-coverage`. Add `--hyva` to select Hyvä, `--playwright` to select Playwright, or both. The Blog features and five acceptance scenarios are the same in all four combinations.
+From the repository root, run `./install.sh`, then `./bin/run-coverage`. Add `--hyva` for Hyvä CSP, `--hyva --nocsp` for legacy Hyvä, and `--playwright` to use Playwright with any theme. The Blog features and five acceptance scenarios are the same in all six combinations.
 
 - Storefront: **https://magelens.test/blog/**.
 - Magento Admin: **https://magelens.test/admin/**; local demo credentials are `application` / `ApplicationOnly123456!`.
-- Live runner (Cypress installations): **https://magelens.test:6080/**.
+- Live runner (Cypress or Playwright): **https://magelens.test:6080/**.
 - In Admin, open **Blog → Posts**, **Categories**, or **Comments**.
 - Reports: open `coverage/index.html` from the repository root after the coverage command finishes.
 

@@ -23,18 +23,18 @@ xdpyinfo -display "$DISPLAY" >/dev/null
 openbox --sm-disable >/tmp/magelens-openbox.log 2>&1 &
 pids+=("$!")
 xsetroot -solid '#202832'
-xmessage -center -buttons '' 'MageLens Cypress
+xmessage -center -buttons '' 'MageLens test runner
 
 Waiting for a test run.
 Start tests from your terminal with ./bin/run-coverage' &
 pids+=("$!")
 # LibVNCServer scans the file limit on connect; some Docker hosts set it to billions.
-# Bound only this process so Cypress retains the container's normal limits.
+# Bound only this process so the browser retains the container's normal limits.
 (ulimit -n 1024; exec x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared -nopw -viewonly -noxdamage -quiet) &
 pids+=("$!")
 websockify --web=/usr/share/novnc 6080 localhost:5900 &
 pids+=("$!")
 status=0
 wait -n -p exited "${pids[@]}" || status=$?
-echo "Cypress desktop process ${exited:-unknown} exited (status $status)." >&2
+echo "Runner desktop process ${exited:-unknown} exited (status $status)." >&2
 exit 1

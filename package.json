@@ -1,9 +1,10 @@
 {
   "name": "magelens",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "description": "Quickly bootstrap Magento with PHP, JavaScript, and HTML template code coverage",
   "scripts": {
+    "coverage": "./bin/run-coverage",
     "cy:coverage": "./bin/run-coverage",
     "test:integration": "node --test tests/*.test.cjs",
     "test:e2e": "bash tests/e2e-isolated.sh",

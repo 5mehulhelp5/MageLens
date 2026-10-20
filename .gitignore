@@ -29,6 +29,7 @@
 !/bin/run-browser.cjs
 !/bin/run-playwright.cjs
 !/bin/run-coverage
+!/bin/runner
 !/bin/sync-dependencies.cjs
 /.env
 /rootCA.pem
