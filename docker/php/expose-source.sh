@@ -3,13 +3,16 @@ set -euo pipefail
 # nginx keeps its upstream UID; PHP owns the shared private socket directory.
 chown "$APPLICATION_UID:$APPLICATION_GID" /sock
 cd /var/www/html
-source_tree="/bootstrap/magento-${MAGENTO_VERSION}"
+source_tree="/bootstrap/${MAGELENS_PLATFORM:-magento}-${MAGELENS_PLATFORM_VERSION:-$MAGENTO_VERSION}"
+if [[ -f composer.json ]]; then
+    php /application/docker/php/sync-source.php check-platform /var/www/html "${MAGELENS_PLATFORM:-magento}"
+fi
 if [[ ! -f .application-source-ready ]]; then
     if [[ -f composer.json && ! -f .application-source-copying ]]; then
-        # An existing Magento project owns its source and Composer lock. Never
-        # overlay the bootstrapped Magento project or take ownership of its files.
+        # An existing project owns its source and Composer lock. Never
+        # overlay the bootstrapped project or take ownership of its files.
         [[ -f bin/magento && -f app/bootstrap.php && -f composer.lock ]] || {
-            echo 'Expected a complete Magento project in src/ (composer.json, composer.lock, bin/magento, app/bootstrap.php).' >&2; exit 1;
+            echo 'Expected a complete Magento or Mage-OS project in src/ (composer.json, composer.lock, bin/magento, app/bootstrap.php).' >&2; exit 1;
         }
         touch .magelens-imported .application-source-ready
         chown "$APPLICATION_UID:$APPLICATION_GID" .magelens-imported .application-source-ready
@@ -37,7 +40,7 @@ if [[ ! -f .application-source-ready ]]; then
         [[ "$origin" != /opt/magento ]] || origin="$source_tree"
         [[ "$origin" == /legacy || "$origin" == "$source_tree" ]] || { echo 'Invalid source copy state.' >&2; exit 1; }
         [[ -f "$source_tree/.magelens-composer-ready" ]] || { echo 'Complete the Composer download before exposing source.' >&2; exit 1; }
-        echo "Copying Magento from $origin into the host src/ directory."
+        echo "Copying application source from $origin into the host src/ directory."
         rsync -a --ignore-existing --exclude=/.application-source-ready --exclude=/.application-source-copying --exclude=/.magelens-composer-ready "$origin/" ./
         chown -R "$APPLICATION_UID:$APPLICATION_GID" .
         touch .application-source-ready
@@ -46,9 +49,9 @@ if [[ ! -f .application-source-ready ]]; then
     fi
 fi
 if [[ -f .magelens-imported ]]; then
-    echo 'Using the copied Magento project and its Composer lock; managed source updates are disabled.'
+    echo 'Using the copied project and its Composer lock; managed source updates are disabled.'
 else
     [[ -f "$source_tree/.magelens-composer-ready" ]] || { echo 'Complete the Composer download before updating source.' >&2; exit 1; }
     su -s /bin/bash app -c 'exec php /application/docker/php/sync-source.php sync "$1" /var/www/html' -- bash "$source_tree"
 fi
-echo 'Magento core, vendor, configuration and media are available in src/.'
+echo 'Application core, vendor, configuration and media are available in src/.'

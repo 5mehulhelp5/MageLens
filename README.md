@@ -2,9 +2,9 @@
   <img src="assets/magelens.svg" alt="MageLens logo" width="320">
 </p>
 
-# MageLens: Magento 2 E2E code coverage with Docker
+# MageLens: Magento 2 and Mage-OS E2E code coverage with Docker
 
-**See which PHP, JavaScript and templates your Magento 2 end-to-end tests execute.** MageLens sets up a local Magento Open Source environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
+**See which PHP, JavaScript and templates your end-to-end tests execute.** MageLens sets up a local Magento Open Source or Mage-OS environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
 
 Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
@@ -19,27 +19,31 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.3.3.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.4.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
 
-The command above installs Luma with Cypress. For another combination, append the corresponding flags to its `./install.sh` command:
+The command above installs Magento Open Source with Luma and Cypress. Add `--mageos` to install Mage-OS instead. Both platforms support every storefront and browser runner combination:
 
-| Installer command | Storefront | Browser runner |
-| --- | --- | --- |
-| `./install.sh` | Luma | Cypress |
-| `./install.sh --hyva` | Hyvä CSP | Cypress |
-| `./install.sh --playwright` | Luma | Playwright |
-| `./install.sh --hyva --playwright` | Hyvä CSP | Playwright |
-| `./install.sh --hyva --nocsp` | Legacy Hyvä | Cypress |
-| `./install.sh --hyva --nocsp --playwright` | Legacy Hyvä | Playwright |
+| Magento Open Source | Mage-OS | Storefront | Browser runner |
+| --- | --- | --- | --- |
+| `./install.sh` | `./install.sh --mageos` | Luma | Cypress |
+| `./install.sh --hyva` | `./install.sh --mageos --hyva` | Hyvä CSP | Cypress |
+| `./install.sh --playwright` | `./install.sh --mageos --playwright` | Luma | Playwright |
+| `./install.sh --hyva --playwright` | `./install.sh --mageos --hyva --playwright` | Hyvä CSP | Playwright |
+| `./install.sh --hyva --nocsp` | `./install.sh --mageos --hyva --nocsp` | Legacy Hyvä | Cypress |
+| `./install.sh --hyva --nocsp --playwright` | `./install.sh --mageos --hyva --nocsp --playwright` | Legacy Hyvä | Playwright |
 
-Each installation includes its selected runner and browser, with the same live viewer for Cypress and Playwright. Both run entirely in Docker. The installer saves the selection; `./bin/run-coverage` uses it automatically. Repeat the same flags when rerunning installation; omitted flags select Luma/Cypress.
+Each installation includes its selected runner and browser, with the same live viewer for Cypress and Playwright. Both run entirely in Docker. The installer saves the platform, theme and runner; `./bin/run-coverage` uses them automatically. Repeat the same flags when rerunning installation; omitted flags select Magento Open Source/Luma/Cypress.
+
+Automated browser scenarios disable page-change animations for consistent navigation on both platforms.
+
+Mage-OS is downloaded from its public Composer repository without Magento Marketplace keys. Use a separate directory and Docker project for each platform; `--mageos` does not convert an existing Magento installation.
 
 Hyvä replaces the active storefront theme. Magento's bundled Luma/Blank packages remain part of Magento; the installer does not remove core files. Hyvä is downloaded only for `--hyva`.
 
-All six modes install their coverage dependencies from npm. `--nocsp` requires `--hyva`.
+All twelve combinations install their coverage dependencies from npm. `--nocsp` requires `--hyva`.
 
 `--hyva` installs `Hyva/default-csp` and enforces its storefront script policy.
 Use `--hyva --nocsp` for `Hyva/default` and existing customizations that require the
@@ -59,7 +63,7 @@ Then generate coverage reports:
 
 Coverage runs reuse the running environment and automatically warm the storefront homepage before starting tests in a fresh browser. Cache cleaning, asset refreshes and restarts are [optional arguments](docs/coverage.md#run-lifecycle); use `--start` if services are stopped.
 
-The installer asks for a test domain, defaulting to `magelens.test`, and saves it as `APPLICATION_DOMAIN` in `.env`. It downloads Magento, dependencies, and the selected runner’s browser; allow several minutes. To use an existing project, [copy its source before installing](#copy-a-complete-magento-project).
+The installer asks for a test domain, defaulting to `magelens.test`, and saves it as `APPLICATION_DOMAIN` in `.env`. It downloads your selected platform, dependencies, and the runner’s browser; allow several minutes. To use an existing project, [copy its source before installing](#copy-a-complete-magento-project).
 
 With the default domain and ports:
 
@@ -80,10 +84,10 @@ Open the live runner before starting `./bin/run-coverage` to watch either runner
 - Docker Engine/Desktop with Compose **2.24.4+**, running Linux containers; Git, Bash, wget, and tar.
 - Linux or macOS. Allocate at least **6 GB RAM** to Docker (8 GB recommended) and roughly **15 GB free disk** for the first build.
 - Internet access for container images, Composer/npm dependencies, and the selected browser download.
-- Magento Marketplace public/private keys for `repo.magento.com`.
+- Magento Marketplace public/private keys for `repo.magento.com` when installing Magento Open Source. Mage-OS does not require them. Copied projects may require credentials for their own private packages.
 - Free local ports **80** and **443**, plus **6080** for the live test viewer. Configure `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT`, and `RUNNER_VIEW_PORT` in `.env` to use different ports. Existing `CYPRESS_VIEW_PORT` settings still work for both runners; `RUNNER_VIEW_PORT` takes precedence when set.
 
-Installation uses Mark Shust's `bin/setup-composer-auth`. It reuses Composer credentials from the container or host, or asks for **Username** (public key) and **Password** (private key). Credentials are stored in the local `composerdata` Docker volume. To configure them separately after the PHP service starts, run `bin/setup-composer-auth`.
+Magento Open Source installation uses Mark Shust's `bin/setup-composer-auth`. It reuses Composer credentials from the container or host, or asks for **Username** (public key) and **Password** (private key). Credentials are stored in the local `composerdata` Docker volume. Mage-OS skips this step. To configure Marketplace credentials separately after the PHP service starts, run `bin/setup-composer-auth`.
 
 The installer adds the domain to your hosts file and uses Mark Shust's SSL tools to configure a trusted local HTTPS certificate. These steps request your system password when needed. The application and live viewer bind to `127.0.0.1`.
 
@@ -109,7 +113,7 @@ Read the [coverage guide](docs/coverage.md) for report semantics, collection det
 
 MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the selected runner and its live desktop.
 
-Magento is installed through Composer. Its modules, framework, and themes live in `src/vendor/magento/`; client modules live in `src/app/code/`. Magento runs in developer mode, generating code and static assets on demand, with page and block caches disabled for coverage collection.
+The selected platform is installed through Composer. Its modules, framework, and themes live in `src/vendor/magento/` for Magento Open Source or `src/vendor/mage-os/` for Mage-OS; client modules live in `src/app/code/`. Both run in developer mode, generating code and static assets on demand, with page and block caches disabled for coverage collection.
 
 The coverage configuration is explicit in [docker/php/env.php.sample](docker/php/env.php.sample). Installation merges this fragment into `src/app/etc/env.php`, preserving credentials and unrelated settings. HTML/PHTML and browser assets run without minification.
 
@@ -117,7 +121,7 @@ Following Mark Shust's development setup, MageLens installs [DisableTwoFactorAut
 
 ## Dependency versions
 
-Edit **[dependencies.yaml](dependencies.yaml)**, then rerun the installer with your theme and runner flags. For Luma/Cypress:
+Edit **[dependencies.yaml](dependencies.yaml)**, then rerun the installer with your platform, theme and runner flags. For Magento Open Source with Luma/Cypress:
 
 ```bash
 ./install.sh
@@ -128,6 +132,7 @@ This is the single place to choose the main dependency versions:
 | Component | YAML setting |
 | --- | --- |
 | Magento Open Source | `MAGENTO_VERSION` |
+| Mage-OS | `MAGEOS_VERSION` |
 | Mark Shust Docker Magento, including its PHP and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
@@ -140,7 +145,7 @@ This is the single place to choose the main dependency versions:
 | Cypress runner's Node and browser system dependencies | `RUNNER_IMAGE` |
 | Playwright runner’s Node base image | `PLAYWRIGHT_RUNNER_IMAGE` |
 
-Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your Magento version.
+Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your chosen platform version. The defaults pair Magento Open Source 2.4.8-p5 and Mage-OS 2.3.0, which share the same Magento foundation.
 
 The installer updates `package.json` and `package-lock.json` for your selected runner and coverage tools. You do not need to install Cypress or Playwright separately. Hyvä upgrades also require a matching package list in `docker/php/hyva-packages.json` for the selected `HYVA_VERSION`.
 
@@ -148,7 +153,7 @@ After changing versions, run `./bin/run-coverage` to check your tests and regene
 
 Select Playwright during installation with `./install.sh --playwright`, then use `./bin/run-coverage`. Import `test` and `expect` from `playwright/support.cjs` in project specs under `playwright/e2e/` or module `Test/Playwright/` directories. Cypress remains the default. Both runners produce PHP, JavaScript and template reports with the same source-integrity checks.
 
-For installations created by MageLens, changing `MAGENTO_VERSION` updates Magento while preserving client modules, configuration, media, and the database. Installation stops if an update conflicts with local edits. Back up the database before upgrading; Magento setup can change its schema. Downgrades require a separate checkout and database.
+For installations created by MageLens, changing `MAGENTO_VERSION` updates Magento Open Source; changing `MAGEOS_VERSION` updates Mage-OS when installed with `--mageos`. Updates preserve client modules, configuration, media, and the database. Installation stops if an update conflicts with local edits. Back up the database before upgrading; application setup can change its schema. Downgrades and switching platforms require a separate checkout and database.
 
 For a copied project, manage Magento dependencies through its own `composer.json` and `composer.lock`. Review the demo's [Cypress patches](patches/cypress/README.md) when changing Magento versions.
 
@@ -161,7 +166,7 @@ After installation, Magento's full source is available in **`src/`** and bind-mo
 Copy them into their normal Magento locations, for example `src/app/code/YourVendor/YourModule` or `src/app/design/frontend/YourVendor/your-theme`, then run:
 
 ```bash
-./install.sh # repeat your --hyva, --nocsp and --playwright selections
+./install.sh # repeat your --mageos, --hyva, --nocsp and --playwright selections
 ./bin/run-coverage
 ```
 
@@ -171,11 +176,11 @@ Fresh installations select Luma by default and Hyvä CSP with `--hyva` (legacy H
 
 ### Copy a complete Magento project
 
-Before the first installation, place your complete project in `src/`, including `composer.json`, `composer.lock`, `bin/magento`, and `app/bootstrap.php`. Remove the bundled example module and theme if you do not want them in your project. MageLens installs dependencies from your `composer.lock` and adds the development 2FA module if it is missing. Provide credentials for any private Composer repositories your project uses.
+Before the first installation, place your complete Magento or Mage-OS project in `src/`, including `composer.json`, `composer.lock`, `bin/magento`, and `app/bootstrap.php`. Add `--mageos` when installing a copied Mage-OS project. Remove the bundled example module and theme if you do not want them in your project. MageLens installs dependencies from your `composer.lock` and adds the development 2FA module if it is missing. Provide credentials for any private Composer repositories your project uses.
 
 For a fresh local database, omit the copied `app/etc/env.php`. To use existing data, import your database into the local `db` service and configure `env.php` for the local services before running `./install.sh`. The database host must be `db`.
 
-Rerun `./install.sh` with the same theme and runner flags after module or theme changes to refresh setup and static assets. See the [coverage guide](docs/coverage.md#use-your-project) for adding scenarios and optional test fixtures.
+Rerun `./install.sh` with the same platform, theme and runner flags after module or theme changes to refresh setup and static assets. See the [coverage guide](docs/coverage.md#use-your-project) for adding scenarios and optional test fixtures.
 
 ## Everyday commands
 
@@ -183,7 +188,7 @@ Run these from the repository root. The test, viewer, and service commands work 
 
 ```bash
 ./install.sh                              # install Luma/Cypress; repeat your flags to refresh another mode
-./install.sh shop.test                    # configure a different local domain; include your theme/runner flags
+./install.sh shop.test                    # configure a different local domain; include your platform/theme/runner flags
 ./bin/run-coverage                        # full suite, fresh reports, and badges
 ./bin/run-coverage --start                # start stopped services, then run the full suite
 ./bin/runner node --version               # use the selected runner's container tools
@@ -205,7 +210,7 @@ Installation also makes Mark Shust's Magento tools available in `bin/`. Commands
 
 The default Docker project name is `magelens`. To run multiple copies, set a unique `COMPOSE_PROJECT_NAME`, `APPLICATION_DOMAIN`, and host ports in each `.env` before installing. Keep the project name unchanged when reusing its database volumes.
 
-Rerun `./install.sh` with your theme and runner flags to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
+Rerun `./install.sh` with your platform, theme and runner flags to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
 
 Avoid changing application data while the tests run. See the [coverage guide](docs/coverage.md#run-lifecycle) for optional refreshes and recovery.
 
@@ -231,7 +236,11 @@ Avoid changing application data while the tests run. See the [coverage guide](do
 
 ### Do I need PHP, Composer or Node installed on my host?
 
-The application, dependencies, selected test runner and report tools run in Docker. Install the host tools listed in [requirements](#requirements), and provide Magento Marketplace credentials.
+The application, dependencies, selected test runner and report tools run in Docker. Install the host tools listed in [requirements](#requirements). Magento Open Source also needs Magento Marketplace credentials; Mage-OS does not.
+
+### Does Hyvä work with Mage-OS?
+
+Yes. Use `./install.sh --mageos --hyva` for Hyvä CSP, or add `--nocsp` for legacy Hyvä. Add `--playwright` to use Playwright instead of Cypress. Hyvä Checkout remains a separate product.
 
 ### Can I use my own Magento modules and themes?
 
@@ -251,8 +260,8 @@ No. MageLens installs a local developer environment with coverage instrumentatio
 - [PCOV fork](https://github.com/VitaliyBoyko/pcov): PHP line coverage with native export and manifest reuse, selected in `dependencies.yaml`.
 - [Magento 2 and Adobe Commerce PhpStorm plugin](https://github.com/VitaliyBoyko/magento2-phpstorm-plugin): code navigation, inspections, generators and Magento MCP tools for working with the source.
 
-For reproducible setup or reporting problems, [open an issue](https://github.com/VitaliyBoyko/MageLens/issues) with the MageLens version, theme, runner and relevant diagnostics. See [releases](https://github.com/VitaliyBoyko/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
+For reproducible setup or reporting problems, [open an issue](https://github.com/VitaliyBoyko/MageLens/issues) with the MageLens version, platform, theme, runner and relevant diagnostics. See [releases](https://github.com/VitaliyBoyko/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
 
 ## Repository navigation for AI agents
 
-See [AGENTS.md](AGENTS.md) for the architecture map, source entry points, validation commands and contribution constraints.
+See [AGENTS.md](AGENTS.md) for installation, coverage and testing instructions for coding agents using MageLens.

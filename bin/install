@@ -5,22 +5,28 @@ command -v git >/dev/null || fail 'Install Git, then rerun ./install.sh.'
 container_only=0
 nocsp=0
 requested_domain=''
-export MAGELENS_THEME=luma MAGELENS_RUNNER=cypress
+previous_platform=$MAGELENS_PLATFORM
+export MAGELENS_THEME=luma MAGELENS_RUNNER=cypress MAGELENS_PLATFORM=magento
 for argument in "$@"; do
     case "$argument" in
         --container-only) container_only=1 ;;
+        --mageos) MAGELENS_PLATFORM=mageos ;;
         --hyva) MAGELENS_THEME=hyva ;;
         --nocsp|-nocsp) nocsp=1 ;;
         --playwright) MAGELENS_RUNNER=playwright ;;
         --help|-h)
-            printf 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]\nDefault: Luma and Cypress. --hyva selects Hyva CSP; --hyva --nocsp selects legacy Hyva; --playwright selects Playwright.\n'
+            printf 'Usage: ./install.sh [--mageos] [--hyva [--nocsp]] [--playwright] [--container-only] [domain]\nDefault: Magento Open Source, Luma and Cypress. --mageos selects Mage-OS; --hyva selects Hyva CSP; --hyva --nocsp selects legacy Hyva; --playwright selects Playwright.\n'
             exit 0 ;;
-        -*) fail 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]' ;;
+        -*) fail 'Usage: ./install.sh [--mageos] [--hyva [--nocsp]] [--playwright] [--container-only] [domain]' ;;
         *)
-            [[ -z "$requested_domain" ]] || fail 'Usage: ./install.sh [--hyva [--nocsp]] [--playwright] [--container-only] [domain]'
+            [[ -z "$requested_domain" ]] || fail 'Usage: ./install.sh [--mageos] [--hyva [--nocsp]] [--playwright] [--container-only] [domain]'
             requested_domain=$argument ;;
     esac
 done
+select_platform
+if [[ -f src/.application-source-ready && -f .runtime/install-profile && "$previous_platform" != "$MAGELENS_PLATFORM" ]]; then
+    fail "This installation uses $previous_platform. Repeat its platform flag when reinstalling. To use $MAGELENS_PLATFORM, install in a separate directory; changing platforms in place is not supported."
+fi
 if (( nocsp )); then
     [[ "$MAGELENS_THEME" == hyva ]] || fail '--nocsp requires --hyva.'
     MAGELENS_THEME=hyva-legacy
@@ -34,7 +40,7 @@ if [[ "$MAGELENS_THEME" == hyva* || "$MAGELENS_RUNNER" == playwright ]]; then
 fi
 lock_workflow
 rm -f .runtime/installed
-printf '%s %s\n' "$MAGELENS_THEME" "$MAGELENS_RUNNER" > .runtime/install-profile
+printf '%s %s %s\n' "$MAGELENS_THEME" "$MAGELENS_RUNNER" "$MAGELENS_PLATFORM" > .runtime/install-profile
 # Retire the old Playwright overlay that disabled the live viewer.
 rm -f .runtime/compose.runner.yaml
 mkdir -p .runtime/template-package
@@ -80,15 +86,17 @@ dc build --pull phpfpm runner
 # Docker initializes this dependencies volume from the image; refresh it on reruns too.
 dc run --rm --no-deps --user root runner chown -R "$LOCAL_UID:$LOCAL_GID" /workspace/node_modules
 dc run --rm --no-deps runner npm ci --ignore-scripts --no-audit --no-fund
-say 'Configuring Composer with the upstream Docker Magento tools'
+say "Preparing Composer for $MAGELENS_PLATFORM_NAME $MAGELENS_PLATFORM_VERSION"
 start_php_for_setup
-"$ROOT/bin/setup-composer-auth"
+if [[ "$MAGELENS_PLATFORM" == magento ]]; then
+    "$ROOT/bin/setup-composer-auth"
+fi
 if [[ ! -f src/.magelens-imported && ( ! -f src/composer.json || -f src/.application-source-ready ) ]]; then
-    say 'Installing Magento Composer packages (core code stays in vendor/)'
+    say "Installing $MAGELENS_PLATFORM_NAME Composer packages (core code stays in vendor/)"
     "$ROOT/bin/clinotty" bash /application/docker/php/download-magento.sh
 fi
 dc stop -t 60 app phpfpm
-say 'Preparing local Magento source in src/ (preserving an existing installation)'
+say "Preparing local $MAGELENS_PLATFORM_NAME source in src/ (preserving an existing installation)"
 dc run --rm --no-deps workspace
 if [[ "$MAGELENS_THEME" == hyva* ]]; then
     say "Installing Hyva $HYVA_VERSION"
@@ -98,9 +106,9 @@ if [[ "$MAGELENS_THEME" == hyva* ]]; then
     fi
 fi
 dc run --rm --no-deps runner node bin/prepare.cjs --plain
-say 'Starting the dedicated Magento database and search services'
+say 'Starting the application database and search services'
 start_dependencies
-say 'Installing/configuring Magento and discovered custom modules'
+say "Installing/configuring $MAGELENS_PLATFORM_NAME and discovered custom modules"
 dc run --rm --no-deps --user root phpfpm bash /application/docker/php/install-magento.sh
 dc run --rm --no-deps phpfpm php /application/docker/php/theme-scope.php > .runtime/active-themes.json
 dc exec -T runner node bin/prepare.cjs --runtime-only --theme-roots .runtime/active-themes.json
@@ -130,4 +138,4 @@ dc exec -T app sh -c 'curl --fail --silent --show-error --insecure --retry 30 --
 printf '3\n' > .runtime/installed
 say "MageLens is ready. Open $(dc exec -T phpfpm bash /application/docker/php/base-url.sh --print)"
 say "Watch tests at $(dc exec -T phpfpm bash /application/docker/php/base-url.sh --print-viewer)"
-printf 'Installed %s with %s. Run ./bin/run-coverage (no host Node required).\n' "$MAGELENS_THEME" "$MAGELENS_RUNNER"
+printf 'Installed %s %s, %s with %s. Run ./bin/run-coverage (no host Node required).\n' "$MAGELENS_PLATFORM_NAME" "$MAGELENS_PLATFORM_VERSION" "$MAGELENS_THEME" "$MAGELENS_RUNNER"

@@ -51,16 +51,16 @@ function workspace(t) {
 
 function parse(file, env = {}) {
     return spawnSync('bash', ['-eu', '-c',
-        'source "$1"; load_dependencies "$2"; printf "%s\\n" "$MAGENTO_VERSION" "$MARKSHUST_DOCKER_MAGENTO_VERSION" "$RUNNER_IMAGE"',
+        'source "$1"; load_dependencies "$2"; printf "%s\\n" "$MAGENTO_VERSION" "$MAGEOS_VERSION" "$MARKSHUST_DOCKER_MAGENTO_VERSION" "$RUNNER_IMAGE"',
         'test', path.join(root, 'bin/dependencies'), file], {encoding: 'utf8', env: {...process.env, ...env}});
 }
 
 test('dependency YAML overrides stale environment variables and accepts comments, quotes and CRLF', t => {
     const file = path.join(workspace(t), 'dependencies.yaml');
     fs.writeFileSync(file, yaml.replaceAll('"', "'").replaceAll('\n', '\r\n'));
-    const result = parse(file, {MAGENTO_VERSION: '0.0.0'});
+    const result = parse(file, {MAGENTO_VERSION: '0.0.0', MAGEOS_VERSION: '0.0.0'});
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, ['MAGENTO_VERSION', 'MARKSHUST_DOCKER_MAGENTO_VERSION', 'RUNNER_IMAGE'].map(configured).join('\n') + '\n');
+    assert.equal(result.stdout, ['MAGENTO_VERSION', 'MAGEOS_VERSION', 'MARKSHUST_DOCKER_MAGENTO_VERSION', 'RUNNER_IMAGE'].map(configured).join('\n') + '\n');
 });
 
 test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t => {
@@ -71,6 +71,8 @@ test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t 
         yaml + 'TYPO_VERSION: "1.2.3"\n',
         select(yaml, {MAGENTO_VERSION: '$(touch /tmp/magelens-must-not-execute)'}),
         select(yaml, {CYPRESS_VERSION: 'latest'}),
+        yaml.replace(/^MAGEOS_VERSION:.*\n/m, ''),
+        select(yaml, {MAGEOS_VERSION: '^2.3.0'}),
         ...Object.keys(browserVersions).flatMap(key => [
             yaml.replace(new RegExp(`^${key}:.*\\n`, 'm'), ''),
             select(yaml, {[key]: '^1.0.0'})
@@ -128,9 +130,10 @@ test('failed dependency resolution preserves the working manifest and lock', t =
     assert.deepEqual(files.map(file => fs.readFileSync(path.join(directory, file), 'utf8')), original);
 });
 
+for (const platform of ['magento', 'mageos']) {
 for (const [theme, runner] of [['luma', 'cypress'], ['hyva', 'cypress'], ['hyva-legacy', 'cypress'], ['luma', 'playwright'], ['hyva', 'playwright'], ['hyva-legacy', 'playwright']]) {
 for (const containerOnly of [false, true]) {
-test(`installer selects ${theme}/${runner} with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
+test(`installer selects ${platform}/${theme}/${runner} with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
     const directory = workspace(t);
     for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/expose-tools', 'bin/application-domain']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
@@ -155,6 +158,7 @@ const fs = require('node:fs');
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({command: require('node:path').basename(process.argv[1]), args,
     magento: process.env.MAGENTO_VERSION, pcov: process.env.PCOV_VERSION,
+    platform: process.env.MAGELENS_PLATFORM, platformVersion: process.env.MAGELENS_PLATFORM_VERSION,
     cypress: process.env.CYPRESS_VERSION, templates: process.env.TEMPLATE_COVERAGE_VERSION,
     browserVersions: Object.fromEntries(${JSON.stringify(Object.keys(browserVersions))}.map(key => [key, process.env[key]])),
     theme: process.env.MAGELENS_THEME, runner: process.env.MAGELENS_RUNNER, php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
@@ -164,7 +168,7 @@ if (args.includes('--print')) console.log('https://shop.magelens.test/');
 if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:6080/');
 `;
     for (const command of ['docker', 'git', 'sudo']) fs.writeFileSync(path.join(commands, command), script, {mode: 0o755});
-    execFileSync('bash', ['install.sh', ...(theme.startsWith('hyva') ? ['--hyva'] : []), ...(theme === 'hyva-legacy' ? ['--nocsp'] : []), ...(runner === 'playwright' ? ['--playwright'] : []), ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
+    execFileSync('bash', ['install.sh', ...(platform === 'mageos' ? ['--mageos'] : []), ...(theme.startsWith('hyva') ? ['--hyva'] : []), ...(theme === 'hyva-legacy' ? ['--nocsp'] : []), ...(runner === 'playwright' ? ['--playwright'] : []), ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
         {cwd: directory, env: {...process.env, PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
     const calls = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
     assert.ok(calls.some(call => call.command === 'git' && call.args.includes('refs/tags/54.0.0')));
@@ -177,7 +181,9 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     const build = calls.find(call => call.args.includes('build'));
     assert.equal(build.theme, theme);
     assert.equal(build.runner, runner);
-    assert.equal(fs.readFileSync(path.join(directory, '.runtime/install-profile'), 'utf8'), `${theme} ${runner}\n`);
+    assert.equal(fs.readFileSync(path.join(directory, '.runtime/install-profile'), 'utf8'), `${theme} ${runner} ${platform}\n`);
+    assert.equal(build.platform, platform);
+    assert.equal(build.platformVersion, platform === 'mageos' ? configured('MAGEOS_VERSION') : '2.4.9');
     assert.equal(fs.existsSync(path.join(directory, '.runtime/compose.runner.yaml')), false, 'Retire the overlay that hid the Playwright viewer');
     assert.equal(build.magento, '2.4.9');
     assert.equal(build.pcov, '2.2.0');
@@ -194,11 +200,14 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     assert.ok(phpStart.args.includes('--no-deps'), 'Setup must start only PHP-FPM');
     const stoppedWeb = calls.find(call => call.args.includes('stop') && call.args.includes('app') && call.args.includes('phpfpm'));
     assert.ok(stoppedWeb && calls.indexOf(stoppedWeb) < calls.indexOf(volumeSetup), 'Stop web traffic and old FPM before volume initialization');
-    assert.ok(calls.indexOf(phpStart) < calls.indexOf(auth));
+    assert.equal(Boolean(auth), platform === 'magento', 'Only Magento requires Marketplace authentication');
     const download = calls.find(call => call.args.includes('/application/docker/php/download-magento.sh'));
     const expose = calls.find(call => call.args.includes('run') && call.args.includes('workspace'));
-    assert.ok(auth && download && expose);
-    assert.ok(calls.indexOf(auth) < calls.indexOf(download));
+    assert.ok(download && expose);
+    if (auth) {
+        assert.ok(calls.indexOf(phpStart) < calls.indexOf(auth));
+        assert.ok(calls.indexOf(auth) < calls.indexOf(download));
+    }
     assert.ok(calls.indexOf(download) < calls.indexOf(expose), 'Source must be downloaded before changing the installation');
     const domain = calls.find(call => call.args.includes('upstream-domain'));
     const certificate = calls.find(call => call.args.some(arg => arg.includes('openssl req')));
@@ -222,6 +231,7 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
 });
 }
 }
+}
 
 test('Compose inherits service images and PHP from the selected Mark Shust configuration', t => {
     if (spawnSync('docker', ['compose', 'version'], {stdio: 'ignore'}).status !== 0) return t.skip('Docker Compose CLI unavailable');
@@ -243,6 +253,8 @@ test('Compose inherits service images and PHP from the selected Mark Shust confi
     assert.equal(config.services.opensearch.image, 'fixture/search:4.0');
     assert.equal(config.services.phpfpm.build.args.PHP_IMAGE, 'fixture/php:8.5');
     assert.equal(config.services.phpfpm.environment.MAGENTO_VERSION, configured('MAGENTO_VERSION'));
+    assert.equal(config.services.phpfpm.environment.MAGELENS_PLATFORM, 'magento');
+    assert.equal(config.services.phpfpm.environment.MAGELENS_PLATFORM_VERSION, configured('MAGENTO_VERSION'));
     assert.equal(config.services.phpfpm.environment.APPLICATION_DOMAIN, 'magelens.test');
     assert.equal(config.services.phpfpm.environment.APPLICATION_HTTPS_PORT, '443');
     assert.equal(config.services.phpfpm.environment.RUNNER_VIEW_PORT, '6080');
@@ -252,19 +264,24 @@ test('Compose inherits service images and PHP from the selected Mark Shust confi
     assert.equal(config.services.runner.environment.CYPRESS_BASE_URL, 'https://magelens.test:443');
     assert.equal(config.services.runner.build.args.RUNNER_IMAGE, configured('RUNNER_IMAGE'));
     for (const runner of ['cypress', 'playwright']) {
-        fs.writeFileSync(path.join(directory, '.runtime/install-profile'), `luma ${runner}\n`);
+    for (const platform of ['magento', 'mageos']) {
+        fs.writeFileSync(path.join(directory, '.runtime/install-profile'), `luma ${runner} ${platform}\n`);
         for (const [settings, port] of [
             [{}, '6080'],
             [{CYPRESS_VIEW_PORT: '6090'}, '6090'],
             [{CYPRESS_VIEW_PORT: '6090', RUNNER_VIEW_PORT: '6091'}, '6091']
         ]) {
-            const selected = JSON.parse(execFileSync('bash', ['bin/application-compose', 'config', '--format', 'json'], {
+            const selected = JSON.parse(execFileSync('bash', ['bin/application-compose', '--profile', 'tools', 'config', '--format', 'json'], {
                 cwd: directory, encoding: 'utf8', env: {...process.env, CYPRESS_VIEW_PORT: '', RUNNER_VIEW_PORT: '', ...settings}
             }));
             assert.equal(selected.services.runner.build.target, runner);
+            assert.equal(selected.services.phpfpm.environment.MAGELENS_PLATFORM, platform);
+            assert.equal(selected.services.phpfpm.environment.MAGELENS_PLATFORM_VERSION, configured(platform === 'mageos' ? 'MAGEOS_VERSION' : 'MAGENTO_VERSION'));
+            assert.equal(selected.services.workspace.environment.MAGELENS_PLATFORM, platform);
             assert.equal(selected.services.runner.environment.RUNNER_VIEW_PORT, port);
             assert.equal(selected.services.phpfpm.environment.RUNNER_VIEW_PORT, port);
             assert.ok(selected.services.app.ports.some(entry => entry.host_ip === '127.0.0.1' && entry.published === port && entry.target === Number(port)));
         }
+    }
     }
 });

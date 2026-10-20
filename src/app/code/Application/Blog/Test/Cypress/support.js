@@ -21,8 +21,21 @@ export function login(username = 'application', password = 'ApplicationOnly12345
 }
 export function section(name) {
     cy.get('.admin__menu-overlay').should('exist');
-    cy.get('#menu-application-blog-manage > a').click();
-    cy.get(`[data-ui-id="menu-application-blog-${name}"] > a`).click();
+    const clickMenu = selector => cy.get(selector).should('be.visible').then(link => {
+        const element = link[0], win = element.ownerDocument.defaultView;
+        element.scrollIntoView({block: 'nearest', inline: 'nearest'});
+        const box = element.getBoundingClientRect();
+        // Mage-OS's fixed sidebar can extend below the viewport. Click the
+        // visible part of the link, keeping Cypress's normal hit-testing.
+        const left = Math.max(0, box.left), right = Math.min(win.innerWidth, box.right);
+        const top = Math.max(0, box.top), bottom = Math.min(win.innerHeight, box.bottom);
+        expect(right, 'menu link visible width').to.be.greaterThan(left);
+        expect(bottom, 'menu link visible height').to.be.greaterThan(top);
+        return cy.wrap(link).click((left + right) / 2 - box.left, (top + bottom) / 2 - box.top,
+            {scrollBehavior: false});
+    });
+    clickMenu('#menu-application-blog-manage > a');
+    clickMenu(`[data-ui-id="menu-application-blog-${name}"] > a`);
     get('blog-admin').should('be.visible');
 }
 export function findRecord(name) {

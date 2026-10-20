@@ -2,13 +2,21 @@
 
 Run the fast integration checks with `npm run test:integration`.
 
-For a real Magento installation and browser run in a new `/tmp` directory:
+For a real Magento Open Source installation and browser run in a new `/tmp` directory:
 
 ```bash
 MAGELENS_COMPOSER_AUTH_FILE="$HOME/.composer/auth.json" bash tests/e2e-isolated.sh
 ```
 
-`npm run test:e2e` runs the same check. Docker and Magento Marketplace credentials are required; host PHP, Composer, and Node are not required for the Bash command. By default, the test reads `auth.json` from `COMPOSER_HOME`, or `$HOME/.composer` when unset. It copies credentials into a temporary Docker volume without printing them.
+`npm run test:e2e` runs the same check. Docker is required; host PHP, Composer, and Node are not required for the Bash command. Magento Open Source also requires Magento Marketplace credentials. By default, the test reads `auth.json` from `COMPOSER_HOME`, or `$HOME/.composer` when unset. It copies credentials into a temporary Docker volume without printing them.
+
+To test Mage-OS without Marketplace credentials:
+
+```bash
+MAGELENS_E2E_PLATFORM=mageos bash tests/e2e-isolated.sh
+```
+
+Mage-OS checks install with `--mageos` and do not copy Composer credentials, even when the Magento credential settings are present.
 
 To reuse credentials saved by an existing MageLens installation, set `MAGELENS_COMPOSER_AUTH_VOLUME` instead, for example `MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata bash tests/e2e-isolated.sh`. This takes precedence over the file setting, mounts the existing volume read-only, and copies only `auth.json` into the test's own volume.
 
@@ -22,7 +30,7 @@ For debugging, `MAGELENS_E2E_KEEP_ON_FAILURE=1` retains a failed test's workspac
 
 These E2E checks validate fresh installations. The integration suite also checks upgrades of existing installations and recovery of patches left by interrupted runs.
 
-## Luma and Hyvä with both runners
+## Both platforms, all storefronts and runners
 
 Run the matrix using the published dependency versions in `dependencies.yaml`:
 
@@ -30,24 +38,26 @@ Run the matrix using the published dependency versions in `dependencies.yaml`:
 MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 ```
 
-The matrix creates **six independent installations**: Luma, Hyvä CSP and legacy Hyvä, each with Cypress and Playwright. Each uses the installer with the published coverage packages from npm. Checks verify the active theme, selected runner, absence of the other runner's packages and tooling, and coverage generation with `./bin/run-coverage`. Reports are saved at `.runtime/e2e/<project>/<runner>/coverage/index.html`; your existing Magento installation stays untouched.
+The matrix creates **twelve independent installations**: Magento Open Source and Mage-OS, each with Luma, Hyvä CSP and legacy Hyvä, using Cypress and Playwright. Each uses the installer with the published coverage packages from npm. Checks verify the installed platform and pinned version, active theme, selected runner, absence of the other runner's packages and tooling, and coverage generation with `./bin/run-coverage`. Reports are saved at `.runtime/e2e/<project>/<runner>/coverage/index.html`; your existing application stays untouched. `coverage/installation.json` identifies each report's platform, version, theme and runner.
 
 Every combination also checks the shared `./bin/runner` command, the read-only viewer over HTTPS, and browser/desktop recovery after graceful and forced container stops. Both runners execute headed in Docker; host browsers and a host graphical desktop are not required. To run just the restart checks against a built runner image, use `bash tests/runner-container.sh IMAGE`.
 
-All six combinations check input updates, loops, navigation, and form submissions against Magento. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Inline PHTML scripts must execute normally and appear only in template coverage, with called functions, unused functions and both branch outcomes reported. PHP-rendered child scripts must link to their original template and keep unused child functions and branches uncovered. Original source files and PHP line numbers must remain unchanged.
+Both runners disable page-change animations during scenarios and fail on uncaught application errors.
+
+All twelve combinations check input updates, loops, navigation, and form submissions against the installed platform. Coverage checks require executed PHP, JavaScript, and template lines, along with uncovered branches and unvisited templates. Hyvä checks also cover Alpine model updates and unclicked event handlers. Each combination runs the same seven acceptance scenarios: five Blog scenarios covering publishing, moderation, image handling, validation, permissions, and storefront interaction, plus two coverage probes. Inline PHTML scripts must execute normally and appear only in template coverage, with called functions, unused functions and both branch outcomes reported. PHP-rendered child scripts must link to their original template and keep unused child functions and branches uncovered. Original source files and PHP line numbers must remain unchanged. Patch cleanup is checked against the original framework files on both platforms.
 
 Hyvä tests use the installer-selected default theme, with package versions pinned in [hyva-packages.json](../docker/php/hyva-packages.json). Playwright tests include the elgentos guest fixture. CSP runs require an enforcing script policy and verify that unauthorized inline scripts and dynamic code are blocked. Legacy Hyvä runs use `--hyva --nocsp`. Licensed Hyvä Checkout and the full upstream elgentos checkout suite are outside this installation matrix.
 
-The matrix also compares covered and uncovered lines in the shared Blog PHP and Admin JavaScript across all six installations. Within each theme, Cypress and Playwright must produce the same Blog PHP and JavaScript line coverage and template statement coverage. The comparison is saved to `.runtime/e2e/matrix-comparison.json`. Overall percentages can differ between Luma and Hyvä because their storefront implementations differ and inactive application files remain uncovered.
+The matrix also compares covered and uncovered lines in the shared Blog PHP and Admin JavaScript across all twelve installations. Within each platform and theme, Cypress and Playwright must produce the same Blog PHP and JavaScript line coverage and template statement coverage. The comparison is saved to `.runtime/e2e/matrix-comparison.json`. Missing or duplicate combinations fail the comparison. Overall percentages can differ between Luma and Hyvä because their storefront implementations differ and inactive application files remain uncovered.
 
-To test one combination, set `MAGELENS_E2E_THEME=luma`, `hyva` or `hyva-legacy`, and `MAGELENS_E2E_RUNNER=cypress` or `playwright`. For example:
+To test one combination, set `MAGELENS_E2E_PLATFORM=magento` or `mageos`, `MAGELENS_E2E_THEME=luma`, `hyva` or `hyva-legacy`, and `MAGELENS_E2E_RUNNER=cypress` or `playwright`. For example, Mage-OS with Hyvä CSP and Playwright:
 
 ```bash
-MAGELENS_E2E_THEME=hyva MAGELENS_E2E_RUNNER=playwright \
-MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata bash tests/e2e-isolated.sh
+MAGELENS_E2E_PLATFORM=mageos MAGELENS_E2E_THEME=hyva MAGELENS_E2E_RUNNER=playwright \
+bash tests/e2e-isolated.sh
 ```
 
-Omitting the theme and runner settings selects Luma/Cypress.
+Omitting these settings selects Magento Open Source/Luma/Cypress. The full matrix always checks all twelve combinations, regardless of individual selection settings.
 
 ## Test a local template coverage package
 

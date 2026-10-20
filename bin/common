@@ -5,12 +5,23 @@ cd "$ROOT"
 source "$ROOT/bin/dependencies"
 load_dependencies "$ROOT/dependencies.yaml"
 export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
-MAGELENS_THEME=luma MAGELENS_RUNNER=cypress
+MAGELENS_THEME=luma MAGELENS_RUNNER=cypress MAGELENS_PLATFORM=magento
 if [[ -f .runtime/install-profile ]]; then
-    read -r MAGELENS_THEME MAGELENS_RUNNER extra < .runtime/install-profile
-    [[ "$MAGELENS_THEME" == luma || "$MAGELENS_THEME" == hyva || "$MAGELENS_THEME" == hyva-legacy ]] && [[ "$MAGELENS_RUNNER" == cypress || "$MAGELENS_RUNNER" == playwright ]] && [[ -z "${extra:-}" ]] \
+    read -r MAGELENS_THEME MAGELENS_RUNNER MAGELENS_PLATFORM extra < .runtime/install-profile
+    # Profiles created before Mage-OS support contain just the theme and runner.
+    MAGELENS_PLATFORM=${MAGELENS_PLATFORM:-magento}
+    [[ "$MAGELENS_THEME" == luma || "$MAGELENS_THEME" == hyva || "$MAGELENS_THEME" == hyva-legacy ]] && [[ "$MAGELENS_RUNNER" == cypress || "$MAGELENS_RUNNER" == playwright ]] && [[ "$MAGELENS_PLATFORM" == magento || "$MAGELENS_PLATFORM" == mageos ]] && [[ -z "${extra:-}" ]] \
         || { printf 'Invalid .runtime/install-profile.\n' >&2; exit 1; }
 fi
+select_platform() {
+    case "$MAGELENS_PLATFORM" in
+        magento) MAGELENS_PLATFORM_VERSION=$MAGENTO_VERSION; MAGELENS_PLATFORM_NAME='Magento Open Source' ;;
+        mageos) MAGELENS_PLATFORM_VERSION=$MAGEOS_VERSION; MAGELENS_PLATFORM_NAME='Mage-OS' ;;
+        *) printf 'Invalid platform: %s\n' "$MAGELENS_PLATFORM" >&2; return 1 ;;
+    esac
+    export MAGELENS_PLATFORM MAGELENS_PLATFORM_VERSION MAGELENS_PLATFORM_NAME
+}
+select_platform
 export MAGELENS_THEME MAGELENS_RUNNER
 APPLICATION_PHP_IMAGE=''
 dc() {

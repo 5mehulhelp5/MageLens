@@ -23,7 +23,8 @@ for (const file of ['coverage/.active-run', '.runtime/hooks-active', '.runtime/w
 // Composer's source inventory predates test patches. Check that the run restored
 // both the active session workaround and the retired Admin form target exactly.
 const inventory = read('src/.magelens-source.json');
-for (const file of ['vendor/magento/framework/Session/SessionManager.php', 'lib/web/mage/adminhtml/form.js']) {
+const vendor = inventory.platform === 'mageos' ? 'mage-os' : 'magento';
+for (const file of [`vendor/${vendor}/framework/Session/SessionManager.php`, 'lib/web/mage/adminhtml/form.js']) {
     const fingerprint = 'file:' + createHash('sha256').update(fs.readFileSync(`src/${file}`)).digest('hex');
     assert.equal(fingerprint, inventory.files[file], `Patch cleanup changed ${file}`);
 }

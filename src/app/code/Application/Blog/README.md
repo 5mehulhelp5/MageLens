@@ -6,7 +6,7 @@ Equivalent browser scenarios live in `Test/Cypress/` and `Test/Playwright/`; fix
 
 ## Try the demo
 
-From the repository root, run `./install.sh`, then `./bin/run-coverage`. Add `--hyva` for Hyvä CSP, `--hyva --nocsp` for legacy Hyvä, and `--playwright` to use Playwright with any theme. The Blog features and five acceptance scenarios are the same in all six combinations.
+From the repository root, run `./install.sh`, then `./bin/run-coverage`. Add `--mageos` for Mage-OS instead of Magento Open Source, `--hyva` for Hyvä CSP, `--hyva --nocsp` for legacy Hyvä, and `--playwright` to use Playwright with any theme. The Blog features and five acceptance scenarios are the same in all twelve combinations.
 
 - Storefront: **https://magelens.test/blog/**.
 - Magento Admin: **https://magelens.test/admin/**; local demo credentials are `application` / `ApplicationOnly123456!`.
@@ -47,4 +47,4 @@ Each run creates uniquely named fixtures and a temporary dashboard-only Admin ac
 | `view/adminhtml/` | Admin forms, preview JavaScript, and browser templates |
 | [Demo theme](../../../design/frontend/Application/coverage/) | Magento Blank extension, LESS styles, and the `theme-note.html` browser template |
 
-Edit these tracked files under `src/`. Installation copies them into `.runtime/app/` for execution; coverage instruments only the disposable copies and verifies the originals afterward. Rerun `./install.sh` with the same theme/runner flags after changes to refresh Magento setup and assets.
+Edit these tracked files under `src/`. Coverage instruments disposable copies and verifies the originals afterward. Rerun `./install.sh` with the same platform, theme and runner flags after changes to refresh application setup and assets.

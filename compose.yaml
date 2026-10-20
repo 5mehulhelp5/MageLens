@@ -61,6 +61,8 @@ services:
       APPLICATION_UID: ${LOCAL_UID:-1000}
       APPLICATION_GID: ${LOCAL_GID:-1000}
       MAGENTO_VERSION: ${MAGENTO_VERSION:?Missing dependencies.yaml configuration}
+      MAGELENS_PLATFORM: ${MAGELENS_PLATFORM:-magento}
+      MAGELENS_PLATFORM_VERSION: ${MAGELENS_PLATFORM_VERSION:?Run commands through bin/application-compose or install.sh}
       MAGELENS_THEME: ${MAGELENS_THEME:-luma}
       HYVA_VERSION: ${HYVA_VERSION:?Missing dependencies.yaml configuration}
     healthcheck:

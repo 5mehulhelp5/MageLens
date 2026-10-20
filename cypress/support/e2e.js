@@ -3,13 +3,11 @@ const {registerTemplateCoverage} = require('@vitaliiboiko/magento-template-cover
 registerTemplateCoverage({outputDir: 'coverage/raw/templates'});
 
 Cypress.on('window:before:load', win => {
-    // Cross-document animation snapshots conflict with Cypress's iframe
-    // navigation between Hyvä and Admin. Keep normal navigation and error checks.
-    win.document.addEventListener('DOMContentLoaded', () => {
-        const style = win.document.createElement('style');
-        style.textContent = '@view-transition { navigation: none; }';
-        win.document.head.append(style);
-    }, {once: true});
+    // Keep normal navigation and error checks. An adopted sheet also overrides
+    // transition rules that Mage-OS renders near the end of the document body.
+    const sheet = new win.CSSStyleSheet();
+    sheet.replaceSync('@view-transition { navigation: none; }');
+    win.document.adoptedStyleSheets = [...win.document.adoptedStyleSheets, sheet];
 });
 
 beforeEach(() => {

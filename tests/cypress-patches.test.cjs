@@ -83,3 +83,21 @@ test('invalid actions cannot restore retired patches, even when no active patche
     assert.equal(run('invalid').status, 2);
     assert.equal(read('form.txt'), 'patched\n');
 });
+
+test('Magento framework patches apply to Mage-OS and restore its original source', t => {
+    const {run, read, write, patches} = fixture(t);
+    const framework = 'vendor/mage-os/framework';
+    const root = path.join(patches, '../source');
+    fs.mkdirSync(path.join(root, framework, 'Component'), {recursive: true});
+    fs.mkdirSync(path.join(root, framework, 'Session'), {recursive: true});
+    write(`${framework}/Component/ComponentRegistrar.php`, '<?php\n');
+    write(`${framework}/Session/SessionManager.php`, 'original\n');
+    fs.writeFileSync(path.join(patches, 'session.patch'),
+        '--- a/vendor/magento/framework/Session/SessionManager.php\n+++ b/vendor/magento/framework/Session/SessionManager.php\n@@ -1 +1 @@\n-original\n+patched\n');
+    for (const action of ['apply', 'apply', 'revert', 'revert']) {
+        const result = run(action);
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(read(`${framework}/Session/SessionManager.php`), action === 'apply' ? 'patched\n' : 'original\n');
+        assert.equal(fs.existsSync(path.join(root, 'vendor/magento')), false);
+    }
+});

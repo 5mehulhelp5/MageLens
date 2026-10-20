@@ -161,6 +161,37 @@ try {
     syncSource($composer, $unknown);
     check(file_get_contents("$unknown/app/code/Magento/Catalog/local-file.php") === 'unowned local file', 'Unowned core file deleted');
     echo "PASS: archive migration requires ownership and preserves unowned files\n";
+
+    $mageosSource = "$temporary/mageos-source";
+    $mageosTarget = "$temporary/mageos-target";
+    foreach ([$mageosSource, $mageosTarget] as $root) {
+        put($root, 'composer.json', '{"name":"customer/shop","version":"1.0.0","require":{"mage-os/product-community-edition":"2.2.2"}}');
+        put($root, 'vendor/mage-os/framework/example.php', 'old Mage-OS core');
+        inventory($root);
+        check(sourceVersion($root) === '2.2.2', 'Mage-OS product version was not detected');
+        check(sourcePlatform($root) === 'mageos', 'Mage-OS platform was not detected');
+    }
+    put($mageosSource, 'composer.json', '{"require":{"mage-os/product-community-edition":"2.3.0"}}');
+    put($mageosSource, 'vendor/mage-os/framework/example.php', 'new Mage-OS core');
+    put($mageosTarget, 'pub/media/photo.jpg', 'client media');
+    inventory($mageosSource);
+    syncSource($mageosSource, $mageosTarget);
+    check(sourceVersion($mageosTarget) === '2.3.0', 'Mage-OS release was not updated');
+    check(file_get_contents("$mageosTarget/vendor/mage-os/framework/example.php") === 'new Mage-OS core', 'Mage-OS core not updated');
+    check(file_get_contents("$mageosTarget/pub/media/photo.jpg") === 'client media', 'Mage-OS media changed');
+    checkSourcePlatform($mageosTarget, 'mageos');
+    rejects(fn() => checkSourcePlatform($mageosTarget, 'magento'), 'different platform');
+    rejects(fn() => syncSource($composer, $mageosTarget), 'different platform');
+    rejects(fn() => syncSource($mageosSource, $archive), 'different platform');
+    check(sourceVersion($mageosTarget) === '2.3.0', 'Platform switch changed Mage-OS source');
+    echo "PASS: Mage-OS product detection, upgrades, preserved media, and platform-switch refusal\n";
+
+    $legacyInventory = json_decode(file_get_contents("$composer/.magelens-source.json"), true, flags: JSON_THROW_ON_ERROR);
+    unset($legacyInventory['platform']);
+    atomicSourceWrite("$composer/.magelens-source.json", json_encode($legacyInventory, JSON_THROW_ON_ERROR));
+    check(readSourceInventory("$composer/.magelens-source.json")['platform'] === 'magento', 'Legacy inventory must remain Magento');
+    syncSource($composer, $archive);
+    echo "PASS: existing Magento inventories remain compatible\n";
 } finally {
     removeTree($temporary);
 }

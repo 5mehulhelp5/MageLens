@@ -104,9 +104,9 @@ The template badge measures **executable template lines**: starting lines of bin
 
 For a Cypress installation, follow the [source setup instructions](../README.md#work-with-the-source), then add scenarios in `cypress/e2e/**/*.cy.js` or a module's `Test/Cypress/**/*.cy.js`. All matching scenarios run with `./bin/run-coverage`.
 
-For Playwright, install with `./install.sh --playwright` (add `--hyva` for Hyvä), then add specs in `playwright/e2e/**/*.spec.{js,ts}` or a module’s `Test/Playwright/` directory. Import `test` and `expect` from the project’s `playwright/support.cjs` so all three collectors run. `./bin/run-coverage` reads the saved runner selection.
+For Playwright, install with `./install.sh --playwright` (add `--hyva` for Hyvä and `--mageos` for Mage-OS), then add specs in `playwright/e2e/**/*.spec.{js,ts}` or a module’s `Test/Playwright/` directory. Import `test` and `expect` from the project’s `playwright/support.cjs` so all three collectors run. `./bin/run-coverage` reads the saved platform and runner selection.
 
-Rerun `./install.sh` with the same theme/runner flags after adding modules or themes, changing setup code, or updating dependencies. Selecting another installed theme updates the next run's scope automatically.
+Rerun `./install.sh` with the same platform, theme and runner flags after adding modules or themes, changing setup code, or updating dependencies. Selecting another installed theme updates the next run's scope automatically. Coverage commands and report locations are the same on Magento Open Source and Mage-OS.
 
 Modules can provide optional fixture hooks in `Test/MageLens/hooks.php`:
 

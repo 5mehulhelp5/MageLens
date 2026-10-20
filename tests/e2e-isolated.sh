@@ -5,14 +5,20 @@ preflight
 [[ $# == 0 ]] || fail 'Usage: bash tests/e2e-isolated.sh (see tests/README.md for configuration)'
 theme=${MAGELENS_E2E_THEME:-luma}
 runner=${MAGELENS_E2E_RUNNER:-cypress}
+platform=${MAGELENS_E2E_PLATFORM:-magento}
 [[ "$theme" == luma || "$theme" == hyva || "$theme" == hyva-legacy ]] || fail 'MAGELENS_E2E_THEME must be luma, hyva or hyva-legacy.'
 [[ "$runner" == cypress || "$runner" == playwright ]] || fail 'MAGELENS_E2E_RUNNER must be cypress or playwright.'
+[[ "$platform" == magento || "$platform" == mageos ]] || fail 'MAGELENS_E2E_PLATFORM must be magento or mageos.'
 install_options=()
+[[ "$platform" != mageos ]] || install_options+=(--mageos)
 [[ "$theme" != hyva* ]] || install_options+=(--hyva)
 [[ "$theme" != hyva-legacy ]] || install_options+=(--nocsp)
 [[ "$runner" != playwright ]] || install_options+=(--playwright)
 
-if [[ -n "${MAGELENS_COMPOSER_AUTH_VOLUME:-}" ]]; then
+if [[ "$platform" == mageos ]]; then
+    # Exercise the public distribution without inheriting Marketplace credentials.
+    auth_mount=''
+elif [[ -n "${MAGELENS_COMPOSER_AUTH_VOLUME:-}" ]]; then
     docker volume inspect "$MAGELENS_COMPOSER_AUTH_VOLUME" >/dev/null
     auth_mount="type=volume,source=$MAGELENS_COMPOSER_AUTH_VOLUME,target=/auth-source,readonly"
     auth_path=/auth-source/auth.json
@@ -94,19 +100,21 @@ sed 's|^    image: magelens-php:.*|    image: ${COMPOSE_PROJECT_NAME}-php:e2e|' 
 mv compose.yaml.tmp compose.yaml
 grep -qF 'image: ${COMPOSE_PROJECT_NAME}-php:e2e' compose.yaml || fail 'Could not isolate the PHP image tag.'
 
-docker volume create --label "com.docker.compose.project=$project" \
-    --label com.docker.compose.volume=composerdata "${project}_composerdata" >/dev/null
-bootstrap_image=$RUNNER_IMAGE
-[[ "$runner" != playwright ]] || bootstrap_image=$PLAYWRIGHT_RUNNER_IMAGE
-docker run --rm --user root --entrypoint sh \
-    --mount "$auth_mount" \
-    --mount "type=volume,source=${project}_composerdata,target=/composer" \
-    "$bootstrap_image" -c 'cp "$3" /composer/auth.json && chmod 600 /composer/auth.json && chown "$1:$2" /composer/auth.json' \
-    sh "$LOCAL_UID" "$LOCAL_GID" "$auth_path"
+if [[ -n "$auth_mount" ]]; then
+    docker volume create --label "com.docker.compose.project=$project" \
+        --label com.docker.compose.volume=composerdata "${project}_composerdata" >/dev/null
+    bootstrap_image=$RUNNER_IMAGE
+    [[ "$runner" != playwright ]] || bootstrap_image=$PLAYWRIGHT_RUNNER_IMAGE
+    docker run --rm --user root --entrypoint sh \
+        --mount "$auth_mount" \
+        --mount "type=volume,source=${project}_composerdata,target=/composer" \
+        "$bootstrap_image" -c 'cp "$3" /composer/auth.json && chmod 600 /composer/auth.json && chown "$1:$2" /composer/auth.json' \
+        sh "$LOCAL_UID" "$LOCAL_GID" "$auth_path"
+fi
 
 (
     ./install.sh --container-only "${install_options[@]}" "$APPLICATION_DOMAIN"
-    ./bin/runner node tests/verify-installation.cjs "$theme" "$runner"
+    ./bin/runner node tests/verify-installation.cjs "$theme" "$runner" "$platform"
     bash tests/runner-container.sh "$(./bin/application-compose images -q runner)"
     # Verify HTTPS routing through nginx, including the read-only viewer redirect.
     ./bin/application-compose exec -T phpfpm bash -c '
@@ -116,7 +124,10 @@ docker run --rm --user root --entrypoint sh \
         html=$(curl --fail --silent --show-error --insecure "${url}vnc.html")
         [[ "$html" == *noVNC* ]]
     '
-    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme"
+    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme" "$platform"
+    if [[ "$platform" == mageos ]]; then
+        ./bin/application-compose exec -T phpfpm test ! -f /var/www/.composer/auth.json
+    fi
     ./bin/runner node tests/dependencies.test.cjs
     ./bin/application-compose exec -T -e MAGELENS_REPORT_DATA=/application/docker/php/report-data.php phpfpm \
         php -d pcov.directory=/tmp -d pcov.exclude= /application/docker/php/e2e/php-report.test.php
@@ -132,8 +143,9 @@ docker run --rm --user root --entrypoint sh \
     ./bin/runner node tests/verify-scenarios.cjs
     ./bin/runner node tests/verify-e2e.cjs
     ./bin/runner node tests/verify-compatibility.cjs "$theme"
+    cp .runtime/e2e-installation.json coverage/installation.json
     mkdir -p "$artifacts/$runner"
     cp -a coverage "$artifacts/$runner/"
     if [[ -n "${MAGELENS_E2E_RESULT_FILE:-}" ]]; then printf '%s\n' "$artifacts/$runner/coverage" > "$MAGELENS_E2E_RESULT_FILE"; fi
 ) 2>&1 | tee "$artifacts/run.log"
-printf 'PASS: isolated %s installation, %s, and PHP/JavaScript/template coverage.\n' "$theme" "$runner"
+printf 'PASS: isolated %s/%s/%s installation and PHP/JavaScript/template coverage.\n' "$platform" "$theme" "$runner"

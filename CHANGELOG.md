@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.4.0 - 2026-10-20
+
+- Install Mage-OS with `./install.sh --mageos`, without Magento Marketplace credentials. Magento Open Source remains the default.
+- Combine `--mageos` with Luma, Hyvä CSP or legacy Hyvä, using Cypress or Playwright. Coverage reports and the live viewer work the same way on either platform.
+- Retry interrupted Composer package downloads automatically, reusing packages already downloaded.
+- Keep page-change animations disabled in both browser suites for consistent navigation, including Mage-OS Admin pages.
+- Keep Blog Admin navigation working with Mage-OS's fixed sidebar in Cypress scenarios.
+- Check all twelve platform, storefront and browser runner combinations with `npm run test:e2e:matrix`, including source preservation, coverage reports and viewer recovery after restarts.
+
+After updating, rerun `./install.sh` with your platform, theme and runner flags, then `./bin/run-coverage`. For a new Mage-OS environment with Hyvä CSP and Playwright, use `./install.sh --mageos --hyva --playwright` in a separate directory with its own Docker project and ports. Changing an existing installation between Magento and Mage-OS is not supported.
+
 ## 1.3.3 - 2026-10-20
 
 - Watch both Cypress and Playwright through the same read-only noVNC viewer. Warm-up and tests run with a visible browser inside Docker, using the same start, stop, and coverage commands.
