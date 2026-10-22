@@ -124,7 +124,7 @@ fi
         html=$(curl --fail --silent --show-error --insecure "${url}vnc.html")
         [[ "$html" == *noVNC* ]]
     '
-    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme" "$platform"
+    ./bin/application-compose exec -T phpfpm php /application/docker/php/e2e/verify-installation.php "$theme" "$platform" "$PHP_VERSION"
     if [[ "$platform" == mageos ]]; then
         ./bin/application-compose exec -T phpfpm test ! -f /var/www/.composer/auth.json
     fi

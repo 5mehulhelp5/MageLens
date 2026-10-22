@@ -23,14 +23,10 @@ select_platform() {
 }
 select_platform
 export MAGELENS_THEME MAGELENS_RUNNER
-APPLICATION_PHP_IMAGE=''
+APPLICATION_PHP_IMAGE="magelens-php-base:${PHP_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}"
 dc() {
-    # Read the selected release's PHP image before overriding that service with
-    # our PCOV build. All other service images are inherited directly by Compose.
-    if [[ -z "${APPLICATION_PHP_IMAGE:-}" ]]; then
-        APPLICATION_PHP_IMAGE=$(docker compose --project-directory "$ROOT/.runtime/docker-magento/compose" \
-            -f "$ROOT/.runtime/docker-magento/compose/compose.yaml" config --images phpfpm) || return
-    fi
+    # PHP is rebuilt from the upstream recipe on the pinned official security
+    # release. Other service images are inherited directly by Compose.
     local sources=()
     [[ ! -f "$ROOT/.runtime/compose.sources.json" ]] || sources=(-f "$ROOT/.runtime/compose.sources.json")
     MAGELENS_PHP_IMAGE="$APPLICATION_PHP_IMAGE" docker compose --project-directory "$ROOT" -f "$ROOT/compose.yaml" "${sources[@]}" "$@"

@@ -19,7 +19,7 @@ Run `./bin/run-coverage` to generate coverage reports and badges for your projec
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.4.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.4.1.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -111,7 +111,7 @@ Read the [coverage guide](docs/coverage.md) for report semantics, collection det
 
 ## Magento environment
 
-MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects PHP, nginx, MariaDB, OpenSearch, and the cache service together. A separate image supplies the selected runner and its live desktop.
+MageLens extends the Compose services from the selected [Mark Shust Docker Magento](https://github.com/markshust/docker-magento) release with local mounts and coverage tooling. That release selects the PHP build recipe, nginx, MariaDB, OpenSearch, and the cache service. PHP is built on the official base selected by `PHP_IMAGE`. A separate image supplies the selected runner and its live desktop.
 
 The selected platform is installed through Composer. Its modules, framework, and themes live in `src/vendor/magento/` for Magento Open Source or `src/vendor/mage-os/` for Mage-OS; client modules live in `src/app/code/`. Both run in developer mode, generating code and static assets on demand, with page and block caches disabled for coverage collection.
 
@@ -133,7 +133,8 @@ This is the single place to choose the main dependency versions:
 | --- | --- |
 | Magento Open Source | `MAGENTO_VERSION` |
 | Mage-OS | `MAGEOS_VERSION` |
-| Mark Shust Docker Magento, including its PHP and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
+| Mark Shust Docker Magento PHP recipe and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
+| Official PHP base image | `PHP_IMAGE` |
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
 | Playwright | `PLAYWRIGHT_VERSION` |
@@ -145,7 +146,7 @@ This is the single place to choose the main dependency versions:
 | Cypress runner's Node and browser system dependencies | `RUNNER_IMAGE` |
 | Playwright runner’s Node base image | `PLAYWRIGHT_RUNNER_IMAGE` |
 
-Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. Select a Mark Shust release whose PHP and services are compatible with your chosen platform version. The defaults pair Magento Open Source 2.4.8-p5 and Mage-OS 2.3.0, which share the same Magento foundation.
+Use exact release versions and keep values quoted. `RUNNER_IMAGE` is an image with a version tag. `PHP_IMAGE` uses `php:X.Y.Z-fpm-bookworm`, optionally pinned with `@sha256:<digest>`. Choose a PHP version supported by both the selected Mark Shust release and your platform. The defaults pair Magento Open Source 2.4.8-p5 and Mage-OS 2.3.0, which share the same Magento foundation.
 
 The installer updates `package.json` and `package-lock.json` for your selected runner and coverage tools. You do not need to install Cypress or Playwright separately. Hyvä upgrades also require a matching package list in `docker/php/hyva-packages.json` for the selected `HYVA_VERSION`.
 

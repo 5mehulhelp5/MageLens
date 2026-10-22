@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+$expectedPhpVersion = $argv[3] ?? '';
+if (PHP_VERSION !== $expectedPhpVersion) throw new RuntimeException('Expected PHP ' . $expectedPhpVersion . ', got ' . PHP_VERSION);
 require '/var/www/html/app/bootstrap.php';
 $vendor = $argv[2] === 'mageos' ? 'mage-os' : 'magento';
 $framework = (new ReflectionClass(Magento\Framework\App\Bootstrap::class))->getFileName();
@@ -14,4 +16,4 @@ foreach ($om->get(Magento\Store\Model\StoreManagerInterface::class)->getStores()
     $theme = $factory->create($design->getConfigurationDesignTheme('frontend', ['store' => $store]), 'frontend');
     if ($theme->getThemePath() !== $expected) throw new RuntimeException('Expected active ' . $expected . ', got ' . $theme->getThemePath());
 }
-echo 'Verified active storefront theme ', $expected, "\n";
+echo 'Verified PHP ', PHP_VERSION, ' and active storefront theme ', $expected, "\n";

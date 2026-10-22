@@ -10,7 +10,7 @@ expose() {
         --mount "type=bind,source=$1,target=/var/www/html" \
         --mount "type=bind,source=$ROOT/docker,target=/application/docker,readonly" \
         --mount "type=bind,source=$scratch/packages,target=/bootstrap,readonly" \
-        --entrypoint bash "magelens-php:${MAGENTO_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
+        --entrypoint bash "magelens-php:${MAGENTO_VERSION}-php${PHP_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
         -c 'mkdir -p /sock; exec bash /application/docker/php/expose-source.sh'
 }
 mkdir -p "$scratch/packages/magento-$MAGENTO_VERSION/bin"
@@ -20,7 +20,7 @@ printf '<?php // package entry point\n' > "$scratch/packages/magento-$MAGENTO_VE
 docker run --rm --user "$LOCAL_UID:$LOCAL_GID" \
     --mount "type=bind,source=$scratch/packages,target=/bootstrap" \
     --mount "type=bind,source=$ROOT/docker,target=/application/docker,readonly" \
-    --entrypoint php "magelens-php:${MAGENTO_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
+    --entrypoint php "magelens-php:${MAGENTO_VERSION}-php${PHP_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
     /application/docker/php/sync-source.php inventory "/bootstrap/magento-$MAGENTO_VERSION"
 touch "$scratch/packages/magento-$MAGENTO_VERSION/.magelens-composer-ready"
 mkdir -p "$scratch/import/bin" "$scratch/import/app"

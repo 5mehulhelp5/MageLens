@@ -82,7 +82,10 @@ docker run --rm --pull always --user "$LOCAL_UID:$LOCAL_GID" \
     --entrypoint node "$bootstrap_image" bin/sync-dependencies.cjs
 say "Building PHP/PCOV and $MAGELENS_RUNNER tooling"
 dc pull app db redis opensearch
-dc build --pull phpfpm runner
+"$ROOT/bin/build-php-image"
+# The base was just built locally with --pull; it is not a registry image.
+dc build phpfpm
+dc build --pull runner
 # Docker initializes this dependencies volume from the image; refresh it on reruns too.
 dc run --rm --no-deps --user root runner chown -R "$LOCAL_UID:$LOCAL_GID" /workspace/node_modules
 dc run --rm --no-deps runner npm ci --ignore-scripts --no-audit --no-fund

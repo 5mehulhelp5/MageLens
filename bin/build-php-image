@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/common"
+series=${PHP_VERSION%.*}
+context="$ROOT/.runtime/docker-magento/images/php/$series"
+recipe="$context/Dockerfile"
+# Keep all of the pinned upstream recipe's extensions, tools, and FPM settings.
+# Reject an incompatible recipe rather than silently using its unpatched base.
+expected="FROM php:$series-fpm-bookworm AS base"
+[[ -f "$recipe" ]] && [[ $(grep -cFx "$expected" "$recipe") == 1 ]] \
+    || fail "The selected Mark Shust release has no compatible PHP $series Bookworm base recipe."
+mkdir -p "$ROOT/.runtime"
+generated="$ROOT/.runtime/php-base.Dockerfile"
+awk -v expected="$expected" -v image="$PHP_IMAGE" \
+    '{ if ($0 == expected) print "FROM " image " AS base"; else print }' "$recipe" > "$generated"
+say "Rebuilding Mark Shust PHP $series with official PHP $PHP_VERSION"
+docker build --pull --target base --file "$generated" \
+    --tag "$APPLICATION_PHP_IMAGE" "$context"

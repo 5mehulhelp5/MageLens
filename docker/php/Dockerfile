@@ -2,6 +2,8 @@ ARG PHP_IMAGE
 FROM ${PHP_IMAGE}
 USER root
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ARG EXPECTED_PHP_VERSION
+RUN php -r 'if (PHP_VERSION !== $argv[1]) { fwrite(STDERR, "Unexpected PHP version: " . PHP_VERSION . "\n"); exit(1); }' "$EXPECTED_PHP_VERSION"
 ARG PIE_VERSION
 ARG PCOV_VERSION
 # Current supported installation mechanism, pinned to the fork's release.

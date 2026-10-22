@@ -13,6 +13,7 @@
 /compose.versions.yaml
 # Upstream tools are installed locally; keep only our integration scripts tracked.
 /bin/*
+!/bin/build-php-image
 !/bin/application-compose
 !/bin/application-domain
 !/bin/badges.cjs

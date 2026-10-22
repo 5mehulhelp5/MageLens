@@ -18,5 +18,5 @@ docker run --rm --user "$LOCAL_UID:$LOCAL_GID" \
     --mount "type=bind,source=$scratch,target=/var/www/html" \
     --mount "type=bind,source=$ROOT/docker,target=/application/docker,readonly" \
     --env APPLICATION_DOMAIN=store.magelens.test --env APPLICATION_HTTPS_PORT=8443 --env CYPRESS_VIEW_PORT=6090 \
-    --entrypoint bash "magelens-php:${MAGENTO_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
+    --entrypoint bash "magelens-php:${MAGENTO_VERSION}-php${PHP_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" \
     /var/www/html/check.sh

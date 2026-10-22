@@ -8,6 +8,8 @@ const {syncDependencies} = require('../bin/sync-dependencies.cjs');
 const root = path.resolve(__dirname, '..');
 const yaml = fs.readFileSync(path.join(root, 'dependencies.yaml'), 'utf8');
 const configured = key => yaml.match(new RegExp(`^${key}: \"([^\"]+)\"`, 'm'))[1];
+const phpVersion = configured('PHP_IMAGE').match(/^php:([0-9]+\.[0-9]+\.[0-9]+)-/)[1];
+const phpBase = (version = phpVersion, upstream = configured('MARKSHUST_DOCKER_MAGENTO_VERSION')) => `magelens-php-base:${version}-markshust${upstream}`;
 const browserVersions = {
     ISTANBUL_LIB_REPORT_VERSION: '3.0.1',
     ISTANBUL_REPORTS_VERSION: '3.2.0',
@@ -30,6 +32,8 @@ const select = (content, values) => Object.entries(values).reduce((text, [key, v
 test('committed browser dependencies and locks match the central version settings', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
     const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json')));
+    assert.equal(lock.version, manifest.version, 'Release versions must match');
+    assert.equal(lock.packages[''].version, manifest.version, 'Root package versions must match');
     const runner = process.env.MAGELENS_RUNNER || 'cypress';
     const selected = Object.entries(browserPackages).filter(([key]) => runner === 'cypress' ? key !== 'PLAYWRIGHT_VERSION' : !['CYPRESS_VERSION', 'CYPRESS_CODE_COVERAGE_VERSION'].includes(key));
     assert.deepEqual(Object.keys(manifest.devDependencies).sort(), selected.map(([, name]) => name).sort());
@@ -51,16 +55,33 @@ function workspace(t) {
 
 function parse(file, env = {}) {
     return spawnSync('bash', ['-eu', '-c',
-        'source "$1"; load_dependencies "$2"; printf "%s\\n" "$MAGENTO_VERSION" "$MAGEOS_VERSION" "$MARKSHUST_DOCKER_MAGENTO_VERSION" "$RUNNER_IMAGE"',
+        'source "$1"; load_dependencies "$2"; printf "%s\\n" "$MAGENTO_VERSION" "$MAGEOS_VERSION" "$MARKSHUST_DOCKER_MAGENTO_VERSION" "$RUNNER_IMAGE" "$PHP_IMAGE" "$PHP_VERSION"',
         'test', path.join(root, 'bin/dependencies'), file], {encoding: 'utf8', env: {...process.env, ...env}});
 }
 
 test('dependency YAML overrides stale environment variables and accepts comments, quotes and CRLF', t => {
     const file = path.join(workspace(t), 'dependencies.yaml');
     fs.writeFileSync(file, yaml.replaceAll('"', "'").replaceAll('\n', '\r\n'));
-    const result = parse(file, {MAGENTO_VERSION: '0.0.0', MAGEOS_VERSION: '0.0.0'});
+    const result = parse(file, {MAGENTO_VERSION: '0.0.0', MAGEOS_VERSION: '0.0.0', PHP_IMAGE: 'php:0.0.0-fpm-bookworm', PHP_VERSION: '0.0.0'});
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, ['MAGENTO_VERSION', 'MAGEOS_VERSION', 'MARKSHUST_DOCKER_MAGENTO_VERSION', 'RUNNER_IMAGE'].map(configured).join('\n') + '\n');
+    assert.equal(result.stdout, [...['MAGENTO_VERSION', 'MAGEOS_VERSION', 'MARKSHUST_DOCKER_MAGENTO_VERSION', 'RUNNER_IMAGE', 'PHP_IMAGE'].map(configured), phpVersion].join('\n') + '\n');
+});
+
+test('PHP images require an official exact patch version and accept a pinned digest', t => {
+    const file = path.join(workspace(t), 'dependencies.yaml');
+    for (const image of ['php:8.4.27-fpm-bookworm', `php:8.4.27-fpm-bookworm@sha256:${'a'.repeat(64)}`]) {
+        fs.writeFileSync(file, select(yaml, {PHP_IMAGE: image}));
+        const result = parse(file);
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(result.stdout.endsWith(`${image}\n8.4.27\n`));
+    }
+    for (const image of ['php:latest', 'php:8.4-fpm-bookworm', 'php:8.4.27-fpm-alpine', 'php:8.4.27-cli-bookworm',
+        'example/php:8.4.27-fpm-bookworm', 'php:8.4.27-fpm-bookworm@sha256:1234']) {
+        fs.writeFileSync(file, select(yaml, {PHP_IMAGE: image}));
+        const result = parse(file);
+        assert.notEqual(result.status, 0, image);
+        assert.match(result.stderr, /PHP_IMAGE/);
+    }
 });
 
 test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t => {
@@ -72,6 +93,7 @@ test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t 
         select(yaml, {MAGENTO_VERSION: '$(touch /tmp/magelens-must-not-execute)'}),
         select(yaml, {CYPRESS_VERSION: 'latest'}),
         yaml.replace(/^MAGEOS_VERSION:.*\n/m, ''),
+        yaml.replace(/^PHP_IMAGE:.*\n/m, ''),
         select(yaml, {MAGEOS_VERSION: '^2.3.0'}),
         ...Object.keys(browserVersions).flatMap(key => [
             yaml.replace(new RegExp(`^${key}:.*\\n`, 'm'), ''),
@@ -83,6 +105,54 @@ test('dependency YAML rejects missing, duplicate, unknown and unsafe values', t 
         const result = parse(file);
         assert.notEqual(result.status, 0, content);
         assert.ok(result.stderr.includes('dependencies.yaml'));
+    }
+});
+
+test('PHP base rebuild changes only the official base and rejects incompatible upstream recipes', t => {
+    const directory = workspace(t);
+    for (const file of ['bin/common', 'bin/dependencies', 'bin/build-php-image']) {
+        fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
+        fs.copyFileSync(path.join(root, file), path.join(directory, file));
+    }
+    const image = `php:8.4.27-fpm-bookworm@sha256:${'b'.repeat(64)}`;
+    fs.writeFileSync(path.join(directory, 'dependencies.yaml'), select(yaml, {PHP_IMAGE: image}));
+    const context = path.join(directory, '.runtime/docker-magento/images/php/8.4');
+    fs.mkdirSync(context, {recursive: true});
+    const recipe = path.join(context, 'Dockerfile');
+    const original = Buffer.from('FROM php:8.4-fpm-bookworm AS base\n# Magento extensions and configuration\nRUN docker-php-ext-install bcmath intl pdo_mysql\nCOPY conf/php.ini /usr/local/etc/php/conf.d/zz-magento.ini\nFROM base AS test\nRUN php --version\n');
+    fs.writeFileSync(recipe, original);
+    const commands = path.join(directory, 'commands');
+    fs.mkdirSync(commands);
+    const log = path.join(directory, 'docker.jsonl');
+    fs.writeFileSync(path.join(commands, 'docker'), `#!${process.execPath}
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({args, recipe: fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8')}) + '\\n');
+`, {mode: 0o755});
+    const run = () => spawnSync('bash', ['bin/build-php-image'], {
+        cwd: directory, encoding: 'utf8', env: {...process.env, PATH: `${commands}:${process.env.PATH}`}
+    });
+    const result = run();
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(fs.readFileSync(recipe), original, 'Never change the pinned upstream recipe');
+    const calls = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].recipe, original.toString().replace('FROM php:8.4-fpm-bookworm AS base', `FROM ${image} AS base`),
+        'Preserve upstream extensions, configuration and later build stages');
+    assert.equal(calls[0].args.at(-1), context, 'Build with the upstream context for its configuration files');
+    for (const content of [
+        null,
+        original.toString().replace('php:8.4-fpm-bookworm', 'php:8.5-fpm-bookworm'),
+        original.toString().replace('php:8.4-fpm-bookworm', 'php:8.4-fpm-alpine'),
+        `${original}FROM php:8.4-fpm-bookworm AS base\n`
+    ]) {
+        if (content === null) fs.rmSync(recipe);
+        else fs.writeFileSync(recipe, content);
+        const rejected = run();
+        assert.notEqual(rejected.status, 0, 'Reject a missing or incompatible recipe');
+        assert.match(rejected.stderr, /no compatible PHP 8\.4 Bookworm base recipe/);
+        assert.equal(fs.readFileSync(log, 'utf8').trim().split('\n').length, 1, 'Reject before Docker runs');
+        if (content !== null) assert.equal(fs.readFileSync(recipe, 'utf8'), content);
     }
 });
 
@@ -135,13 +205,16 @@ for (const [theme, runner] of [['luma', 'cypress'], ['hyva', 'cypress'], ['hyva-
 for (const containerOnly of [false, true]) {
 test(`installer selects ${platform}/${theme}/${runner} with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
     const directory = workspace(t);
-    for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/expose-tools', 'bin/application-domain']) {
+    for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/build-php-image', 'bin/expose-tools', 'bin/application-domain']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(directory, file));
     }
     fs.writeFileSync(path.join(directory, 'dependencies.yaml'), select(yaml, {MARKSHUST_DOCKER_MAGENTO_VERSION: '54.0.0', MAGENTO_VERSION: '2.4.9',
-        PCOV_VERSION: '2.2.0', ...browserVersions,
+        PCOV_VERSION: '2.2.0', PHP_IMAGE: 'php:8.4.27-fpm-bookworm', ...browserVersions,
         RUNNER_IMAGE: 'cypress/base:24.16.0'}));
+    const recipe = path.join(directory, '.runtime/docker-magento/images/php/8.4');
+    fs.mkdirSync(recipe, {recursive: true});
+    fs.writeFileSync(path.join(recipe, 'Dockerfile'), 'FROM php:8.4-fpm-bookworm AS base\nRUN true\nFROM base AS test\nRUN true\n');
     for (const child of ['bin', 'lib', 'env']) fs.mkdirSync(path.join(directory, '.runtime/docker-magento/compose', child), {recursive: true});
     fs.writeFileSync(path.join(directory, '.runtime/docker-magento/compose/bin/status'), '#!/bin/sh\n');
     // Keep the upstream entry points in the installer contract; Docker is mocked below.
@@ -157,13 +230,12 @@ test(`installer selects ${platform}/${theme}/${runner} with ${containerOnly ? 'c
 const fs = require('node:fs');
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({command: require('node:path').basename(process.argv[1]), args,
-    magento: process.env.MAGENTO_VERSION, pcov: process.env.PCOV_VERSION,
+    magento: process.env.MAGENTO_VERSION, pcov: process.env.PCOV_VERSION, phpVersion: process.env.PHP_VERSION,
     platform: process.env.MAGELENS_PLATFORM, platformVersion: process.env.MAGELENS_PLATFORM_VERSION,
     cypress: process.env.CYPRESS_VERSION, templates: process.env.TEMPLATE_COVERAGE_VERSION,
     browserVersions: Object.fromEntries(${JSON.stringify(Object.keys(browserVersions))}.map(key => [key, process.env[key]])),
     theme: process.env.MAGELENS_THEME, runner: process.env.MAGELENS_RUNNER, php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
 if (args.includes('version')) console.log('2.24.4');
-if (args.includes('--images')) console.log('markoshust/magento-php:8.5-fpm-1');
 if (args.includes('--print')) console.log('https://shop.magelens.test/');
 if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:6080/');
 `;
@@ -178,7 +250,17 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     assert.equal(sync.templates, '1.5.0');
     assert.deepEqual(sync.browserVersions, browserVersions);
     for (const key of Object.keys(browserVersions)) assert.ok(sync.args.includes(key), `Container must receive ${key}`);
-    const build = calls.find(call => call.args.includes('build'));
+    const baseBuild = calls.find(call => call.command === 'docker' && call.args[0] === 'build');
+    assert.ok(baseBuild, 'Build the patched official PHP base with the upstream recipe');
+    assert.ok(baseBuild.args.includes('--pull'));
+    assert.equal(baseBuild.args[baseBuild.args.indexOf('--target') + 1], 'base');
+    assert.ok(baseBuild.args.includes(phpBase('8.4.27', '54.0.0')));
+    const build = calls.find(call => call.args.includes('compose') && call.args.includes('build') && call.args.includes('phpfpm'));
+    const runnerBuild = calls.find(call => call.args.includes('compose') && call.args.includes('build') && call.args.includes('runner'));
+    assert.ok(build && runnerBuild);
+    assert.ok(calls.indexOf(baseBuild) < calls.indexOf(build), 'Build the local PHP base before its coverage image');
+    assert.equal(build.args.includes('--pull'), false, 'The coverage image must reuse the local PHP base');
+    assert.ok(runnerBuild.args.includes('--pull'), 'Refresh the published runner base separately');
     assert.equal(build.theme, theme);
     assert.equal(build.runner, runner);
     assert.equal(fs.readFileSync(path.join(directory, '.runtime/install-profile'), 'utf8'), `${theme} ${runner} ${platform}\n`);
@@ -187,7 +269,8 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     assert.equal(fs.existsSync(path.join(directory, '.runtime/compose.runner.yaml')), false, 'Retire the overlay that hid the Playwright viewer');
     assert.equal(build.magento, '2.4.9');
     assert.equal(build.pcov, '2.2.0');
-    assert.equal(build.php, 'markoshust/magento-php:8.5-fpm-1');
+    assert.equal(build.php, phpBase('8.4.27', '54.0.0'));
+    assert.equal(build.phpVersion, '8.4.27');
     assert.ok(calls.indexOf(sync) < calls.indexOf(build));
     const auth = calls.find(call => call.args.includes('upstream-composer-auth'));
     const volumeSetup = calls.find(call => call.args.includes('chown') && call.args.includes('/sock'));
@@ -233,7 +316,7 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
 }
 }
 
-test('Compose inherits service images and PHP from the selected Mark Shust configuration', t => {
+test('Compose inherits upstream services and uses the rebuilt PHP base with the selected patch', t => {
     if (spawnSync('docker', ['compose', 'version'], {stdio: 'ignore'}).status !== 0) return t.skip('Docker Compose CLI unavailable');
     const directory = workspace(t);
     for (const file of ['compose.yaml', 'dependencies.yaml', 'bin/common', 'bin/dependencies', 'bin/application-compose']) {
@@ -251,7 +334,9 @@ test('Compose inherits service images and PHP from the selected Mark Shust confi
     assert.equal(config.services.db.image, 'fixture/db:12.0');
     assert.equal(config.services.redis.image, 'fixture/cache:9.0');
     assert.equal(config.services.opensearch.image, 'fixture/search:4.0');
-    assert.equal(config.services.phpfpm.build.args.PHP_IMAGE, 'fixture/php:8.5');
+    assert.equal(config.services.phpfpm.build.args.PHP_IMAGE, phpBase());
+    assert.equal(config.services.phpfpm.build.args.EXPECTED_PHP_VERSION, phpVersion);
+    assert.equal(config.services.phpfpm.image, `magelens-php:${configured('MAGENTO_VERSION')}-php${phpVersion}-pcov${configured('PCOV_VERSION')}-markshust${configured('MARKSHUST_DOCKER_MAGENTO_VERSION')}`);
     assert.equal(config.services.phpfpm.environment.MAGENTO_VERSION, configured('MAGENTO_VERSION'));
     assert.equal(config.services.phpfpm.environment.MAGELENS_PLATFORM, 'magento');
     assert.equal(config.services.phpfpm.environment.MAGELENS_PLATFORM_VERSION, configured('MAGENTO_VERSION'));

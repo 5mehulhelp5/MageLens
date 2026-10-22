@@ -38,7 +38,7 @@ To use a complete existing project, copy its `composer.json`, `composer.lock`, `
 
 For a new local database, omit copied `app/etc/env.php`. For an imported database, point `env.php` at this checkout's local `db` service before running setup. Do not connect setup or test fixtures to a remote shop.
 
-Dependency versions are selected in [dependencies.yaml](dependencies.yaml). `MAGENTO_VERSION` controls Magento Open Source; `MAGEOS_VERSION` controls Mage-OS. Choose compatible PHP and service images through `MARKSHUST_DOCKER_MAGENTO_VERSION`. Back up application data before upgrades. Downgrades and platform changes require a separate checkout and database.
+Dependency versions are selected in [dependencies.yaml](dependencies.yaml). `MAGENTO_VERSION` controls Magento Open Source; `MAGEOS_VERSION` controls Mage-OS. Choose compatible PHP through `PHP_IMAGE` and service images through `MARKSHUST_DOCKER_MAGENTO_VERSION`. Back up application data before upgrades. Downgrades and platform changes require a separate checkout and database.
 
 Edit original application files in `src/`, rather than generated files in `.runtime/`. Core and third-party dependencies under `src/vendor/` are installed locally and ignored by Git. Inspect Git status before changing generated or vendor content.
 

@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.4.1 - 2026-10-22
+
+- Update PHP to 8.4.27, with its base image selected through `PHP_IMAGE` in `dependencies.yaml`.
+
+After updating, rerun `./install.sh` with your platform, theme and runner flags, then `./bin/run-coverage`.
+
 ## 1.4.0 - 2026-10-20
 
 - Install Mage-OS with `./install.sh --mageos`, without Magento Marketplace credentials. Magento Open Source remains the default.

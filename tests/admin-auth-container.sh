@@ -47,4 +47,4 @@ docker run --rm --user "$LOCAL_UID:$LOCAL_GID" --env MAGENTO_VERSION \
     --mount "type=bind,source=$scratch/source,target=/var/www/html" \
     --mount "type=bind,source=$scratch/check.sh,target=/check.sh,readonly" \
     --mount "type=bind,source=$ROOT/docker,target=/application/docker,readonly" \
-    --entrypoint bash "magelens-php:${MAGENTO_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" /check.sh
+    --entrypoint bash "magelens-php:${MAGENTO_VERSION}-php${PHP_VERSION}-pcov${PCOV_VERSION}-markshust${MARKSHUST_DOCKER_MAGENTO_VERSION}" /check.sh
