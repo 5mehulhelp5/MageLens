@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.4.2 - 2026-10-23
+
+- Update both Cypress and Playwright runners to Node.js 24.22.1, including the October security fixes for Brotli, TLS and DNS.
+
+After updating, rerun `./install.sh` with your platform, theme and runner flags, then `./bin/run-coverage`.
+
 ## 1.4.1 - 2026-10-22
 
 - Update PHP to 8.4.27, with its base image selected through `PHP_IMAGE` in `dependencies.yaml`.
