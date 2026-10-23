@@ -1,0 +1,3 @@
+interface:
+  display_name: "Engineering Discipline"
+  short_description: "Focused changes, consistent behavior, strict release gates"

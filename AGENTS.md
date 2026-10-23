@@ -2,6 +2,8 @@
 
 MageLens provides a local Magento Open Source or Mage-OS environment with Cypress or Playwright and PHP, JavaScript and template coverage. Use [README.md](README.md) for installation and daily commands, [docs/coverage.md](docs/coverage.md) for scenarios and coverage configuration, and [tests/README.md](tests/README.md) for isolated validation.
 
+Follow the [engineering-discipline skill](.agents/skills/engineering-discipline/SKILL.md) for implementation, documentation updates, testing and releases.
+
 ## Choose an installation
 
 Run commands from the repository root. Docker with Compose 2.24.4+, Git, Bash, wget and tar are required. PHP, Composer, Node and browsers run in containers. Magento Open Source requires Marketplace credentials; Mage-OS uses its public Composer repository without them.
