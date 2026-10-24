@@ -6,6 +6,8 @@
 
 **See which PHP, JavaScript and templates your end-to-end tests execute.** MageLens sets up a local Magento Open Source or Mage-OS environment in Docker and collects PHP, JavaScript, and template coverage from a Cypress or Playwright run.
 
+> **[View the live Hyvä demo report →](https://magelens-coverage-demo.wintrywood128.chatgpt.site)** — PHP, JavaScript and template coverage from a Hyvä CSP storefront with 98 passing Playwright tests.
+
 Run the installer, run the tests, and open one report to see which parts of your application executed. PHP, Composer, Node, the selected browser runner, and reporting tools run in containers.
 
 The included [blog module](src/app/code/Application/Blog/README.md) provides an optional demonstration application with equivalent Cypress and Playwright suites for Luma and Hyvä. The badges are updated after each successful coverage run.
