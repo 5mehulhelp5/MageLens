@@ -22,6 +22,8 @@ MageLens grew out of a real-world Magento project with **600+ E2E tests**, where
 
 It makes those gaps visible across PHP, JavaScript and templates, with **low coverage overhead and near-native performance** observed in that project.
 
+Read [Real-world E2E coverage for hundreds or thousands of tests](docs/parallel-e2e-coverage.md) for a practical CI example with smoke tests, parallel shards, and merged PHP, JavaScript and template coverage.
+
 ## Quick start
 
 Run this inside the empty directory you want to use for MageLens:
