@@ -14,6 +14,12 @@ The included [blog module](src/app/code/Application/Blog/README.md) provides an 
 Run `./bin/run-coverage` to generate coverage reports and badges for your project.
 <!-- coverage-badges:end -->
 
+## Why MageLens?
+
+MageLens grew out of a real-world Magento project with **600+ E2E tests**, where coverage helped uncover forgotten features, broken functionality, and legacy template overrides the tests never exercised.
+
+It makes those gaps visible across PHP, JavaScript and templates, with **low coverage overhead and near-native performance** observed in that project.
+
 ## Quick start
 
 Run this inside the empty directory you want to use for MageLens:
