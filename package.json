@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@cypress/code-coverage": "4.0.3",
-    "@vitaliiboiko/magento-template-coverage": "1.5.1",
+    "@vitaliiboiko/magento-template-coverage": "1.5.2",
     "cypress": "16.2.0",
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-instrument": "6.0.3",

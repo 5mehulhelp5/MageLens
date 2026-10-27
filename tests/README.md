@@ -67,7 +67,7 @@ To test unpublished library changes, pack a sibling `magento-template-coverage` 
 
 ```bash
 (cd ../magento-template-coverage && npm pack --ignore-scripts --pack-destination /tmp)
-MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.5.1.tgz \
+MAGELENS_TEMPLATE_COVERAGE_PACKAGE=/tmp/vitaliiboiko-magento-template-coverage-1.5.2.tgz \
 MAGELENS_COMPOSER_AUTH_VOLUME=magelens_composerdata npm run test:e2e:matrix
 ```
 

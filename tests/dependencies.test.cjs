@@ -14,7 +14,7 @@ const browserVersions = {
     ISTANBUL_LIB_REPORT_VERSION: '3.0.1',
     ISTANBUL_REPORTS_VERSION: '3.2.0',
     PLAYWRIGHT_VERSION: '1.64.1',
-    CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.5.1',
+    CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.5.2',
     CYPRESS_CODE_COVERAGE_VERSION: '4.1.0', ISTANBUL_LIB_COVERAGE_VERSION: '3.2.3',
     ISTANBUL_LIB_INSTRUMENT_VERSION: '6.0.4', NYC_VERSION: '18.0.1'
 };
@@ -252,7 +252,7 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
     const sync = calls.find(call => call.args.includes('bin/sync-dependencies.cjs'));
     assert.ok(sync.args.includes(runner === 'cypress' ? 'cypress/base:24.16.0' : configured('PLAYWRIGHT_RUNNER_IMAGE')), 'Bootstrap must use the selected runner base');
     assert.equal(sync.cypress, '16.2.0');
-    assert.equal(sync.templates, '1.5.1');
+    assert.equal(sync.templates, '1.5.2');
     assert.deepEqual(sync.browserVersions, browserVersions);
     for (const key of Object.keys(browserVersions)) assert.ok(sync.args.includes(key), `Container must receive ${key}`);
     const baseBuild = calls.find(call => call.command === 'docker' && call.args[0] === 'build');
