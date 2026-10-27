@@ -271,6 +271,8 @@ No. MageLens installs a local developer environment with coverage instrumentatio
 
 ## Related tools and support
 
+Thank you to [Mark Shust](https://github.com/markshust) for creating and maintaining [Docker Magento](https://github.com/markshust/docker-magento), the Docker foundation that MageLens builds on.
+
 - [Magento template coverage](https://github.com/VitaliyBoyko/magento-template-coverage): the standalone Cypress/Playwright template collector used here.
 - [PCOV fork](https://github.com/VitaliyBoyko/pcov): PHP line coverage with native export and manifest reuse, selected in `dependencies.yaml`.
 - [Magento 2 and Adobe Commerce PhpStorm plugin](https://github.com/VitaliyBoyko/magento2-phpstorm-plugin): code navigation, inspections, generators and Magento MCP tools for working with the source.
