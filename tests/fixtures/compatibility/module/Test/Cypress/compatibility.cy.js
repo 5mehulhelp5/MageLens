@@ -25,6 +25,18 @@ describe('Magento storefront coverage compatibility', () => {
         cy.get('[data-cy="probe-saved"]').should('have.text', 'Saved coverage');
         cy.get('[data-cy="probe-item"]').should('have.length', 2);
         cy.get('[data-cy="probe-never"]').should('not.exist');
+        cy.get('[data-cy="probe"]').then(probe => {
+            if (!probe.find('[data-cy="probe-image"]').length) return;
+            cy.window().then(win => {
+                win.dispatchEvent(new win.CustomEvent('update-gallery-42', {detail: 'gallery-updated'}));
+                win.dispatchEvent(new win.CustomEvent('update-prices-42', {detail: 'price-updated'}));
+                const event = new win.Event('submit', {bubbles: true, cancelable: true});
+                win.document.querySelector('[data-cy="probe-prevented"]').dispatchEvent(event);
+                expect(event.defaultPrevented).to.equal(true);
+            });
+            cy.get('[data-cy="probe-image"]').should('have.text', 'gallery-updated');
+            cy.get('[data-cy="probe-price"]').should('have.text', 'price-updated');
+        });
         cy.visit('/customer/account/login/');
         cy.get('#email').should('be.visible');
     });

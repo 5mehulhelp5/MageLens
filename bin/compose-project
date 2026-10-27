@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+resolve_compose_project() {
+    local requested=${1:-} saved='' recorded='' selected fallback=magelens LC_ALL=C
+    if [[ -f "$ROOT/.env" ]]; then
+        # Read a literal dotenv value without executing shell code.
+        saved=$(sed -n 's/^[[:space:]]*COMPOSE_PROJECT_NAME[[:space:]]*=[[:space:]]*//p' "$ROOT/.env" | tail -n 1)
+        saved=${saved%$'\r'}
+        saved=$(printf '%s' "$saved" | sed 's/[[:space:]]#.*$//;s/[[:space:]]*$//')
+        saved=${saved#\"}; saved=${saved%\"}
+        saved=${saved#\'}; saved=${saved%\'}
+    fi
+    if [[ -f "$ROOT/.runtime/compose-project-name" ]]; then
+        recorded=$(cat "$ROOT/.runtime/compose-project-name")
+    elif [[ -f "$ROOT/.runtime/installed" || -f "$ROOT/.runtime/install-profile" ]]; then
+        # Older installs with a user-created .env but no name used Compose's
+        # normalized directory name. Preserve those volumes when adopting them.
+        if [[ -f "$ROOT/.env" && -z "$saved" ]]; then
+            fallback=$(basename "$ROOT" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[-_]*//')
+        fi
+        recorded=${saved:-$fallback}
+    fi
+    selected=${requested:-${COMPOSE_PROJECT_NAME:-${saved:-$fallback}}}
+    if [[ ! "$selected" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+        printf 'Invalid Compose project name. Use lowercase letters, digits, hyphens or underscores, starting with a lowercase letter or digit (for example: --project-name client-shop).\n' >&2
+        return 1
+    fi
+    if [[ -n "$recorded" && "$selected" != "$recorded" ]]; then
+        printf 'This installation uses Compose project "%s"; refusing to switch to "%s" and different database volumes. Keep COMPOSE_PROJECT_NAME=%s in .env and unset conflicting environment overrides. To use another project name, install in a separate directory with its own domain and ports.\n' "$recorded" "$selected" "$recorded" >&2
+        return 1
+    fi
+    export COMPOSE_PROJECT_NAME="$selected"
+}
+
+resolve_compose_command_project() {
+    local requested=''
+    # Check Compose's own project flags too, before the service command/arguments.
+    while (( $# )); do
+        case "$1" in
+            -p|--project-name)
+                [[ $# -gt 1 && -n "$2" && "$2" != -* ]] || { printf 'Compose --project-name requires a name.\n' >&2; return 1; }
+                requested=$2; shift ;;
+            --project-name=*)
+                requested=${1#*=}
+                [[ -n "$requested" ]] || { printf 'Compose --project-name requires a name.\n' >&2; return 1; } ;;
+            -p?*) requested=${1#-p} ;;
+            --ansi|--env-file|-f|--file|--parallel|--profile|--progress|--project-directory)
+                [[ $# -gt 1 ]] || return 1
+                shift ;;
+            -*) ;;
+            *) break ;;
+        esac
+        shift
+    done
+    resolve_compose_project "$requested"
+}
+
+save_compose_project() {
+    local temporary
+    temporary=$(mktemp "$ROOT/.env.XXXXXX") || return 1
+    if ! cp -p "$ROOT/.env" "$temporary" || ! awk -v project="$COMPOSE_PROJECT_NAME" '
+        /^[[:space:]]*COMPOSE_PROJECT_NAME[[:space:]]*=/ { next }
+        { print }
+        END { print "COMPOSE_PROJECT_NAME=" project }
+    ' "$ROOT/.env" > "$temporary" || ! mv "$temporary" "$ROOT/.env"; then
+        rm -f "$temporary"
+        return 1
+    fi
+    # Pin before creating volumes, including when installation is interrupted.
+    printf '%s\n' "$COMPOSE_PROJECT_NAME" > "$ROOT/.runtime/compose-project-name"
+}

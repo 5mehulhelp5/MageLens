@@ -8,6 +8,7 @@ printf '{"passed":false,"status":"running"}\n' > "$MAGELENS_MATRIX_REPORT"
 results=$(mktemp -d /tmp/magelens-matrix.XXXXXX)
 trap 'rm -rf "$results"' EXIT
 reports=()
+bash tests/project-isolation.sh || result=1
 for platform in magento mageos; do
     for theme in luma hyva hyva-legacy; do
         for runner in cypress playwright; do

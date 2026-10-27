@@ -1,4 +1,4 @@
-<?php declare(strict_types=1); ?>
+<?php declare(strict_types=1); $productId = 42; $missingId = 0; ?>
 <section data-cy="probe" data-save-url="<?= $block->getUrl('coverageprobe/index/save') ?>" data-form-key="<?= $block->getFormKey() ?>" x-data="coverageProbe">
 <input aria-label="Probe name" data-cy="probe-name" x-model="nameModel">
 <span data-cy="probe-echo" x-text="name"></span>
@@ -11,6 +11,14 @@
 <span data-cy="probe-never" x-text="neverLabel"></span>
 </template>
 <button hidden data-cy="probe-unused" @click="unused">Unused action</button>
+<div <?php if ($missingId): ?>@missing-<?= (int)$missingId ?>.window="unused"<?php endif; ?>
+ @update-gallery-<?= (int)$productId ?>.window="updateImage"
+ <?php if ($productId): ?>@update-prices-<?= (int)$productId ?>.window="updatePrice"<?php endif; ?>
+ @unused-<?= (int)$productId ?>.window="unused">
+<output data-cy="probe-image" x-text="image"></output>
+<output data-cy="probe-price" x-text="price"></output>
+</div>
+<form data-cy="probe-prevented" @submit.prevent><button type="submit">Submit probe</button></form>
 </section>
 <output data-cy="inline-probe"></output>
 <script>

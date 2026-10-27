@@ -11,7 +11,7 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$scratch/bin" "$scratch/src" "$scratch/coverage" "$scratch/.runtime/pcov" "$scratch/.runtime/magento" "$scratch/.runtime/docker-magento"
 cp compose.yaml dependencies.yaml "$scratch/"
-cp bin/common bin/dependencies bin/application-compose bin/expose-tools "$scratch/bin/"
+cp bin/common bin/compose-project bin/dependencies bin/application-compose bin/expose-tools "$scratch/bin/"
 cp -a docker patches "$scratch/"
 cp -a .runtime/docker-magento/compose "$scratch/.runtime/docker-magento/"
 printf 'COMPOSE_PROJECT_NAME=%s\nAPPLICATION_DOMAIN=bootstrap.magelens.test\n' "$project" > "$scratch/.env"

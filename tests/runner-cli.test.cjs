@@ -11,7 +11,7 @@ for (const runner of ['cypress', 'playwright']) {
         t.after(() => fs.rmSync(root, {recursive: true, force: true}));
         fs.mkdirSync(path.join(root, 'bin'));
         fs.mkdirSync(path.join(root, '.runtime'));
-        for (const file of ['bin/runner', 'bin/expose-tools', 'bin/application-compose', 'bin/common', 'bin/dependencies', 'dependencies.yaml']) {
+        for (const file of ['bin/runner', 'bin/expose-tools', 'bin/application-compose', 'bin/common', 'bin/compose-project', 'bin/dependencies', 'dependencies.yaml']) {
             fs.copyFileSync(path.resolve(__dirname, '..', file), path.join(root, file));
         }
         for (const directory of ['bin', 'lib', 'env']) fs.mkdirSync(path.join(root, '.runtime/docker-magento/compose', directory), {recursive: true});

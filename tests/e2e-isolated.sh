@@ -93,8 +93,13 @@ if [[ -n "${MAGELENS_TEMPLATE_COVERAGE_PACKAGE:-}" ]]; then
     cp "$MAGELENS_TEMPLATE_COVERAGE_PACKAGE" "$scratch/.runtime/template-coverage.tgz"
 fi
 cd "$scratch"
-printf 'COMPOSE_PROJECT_NAME=%s\nAPPLICATION_DOMAIN=%s\nAPPLICATION_PORT=%s\nAPPLICATION_HTTPS_PORT=%s\nRUNNER_VIEW_PORT=%s\n' \
-    "$project" "$APPLICATION_DOMAIN" "$APPLICATION_PORT" "$APPLICATION_HTTPS_PORT" "$RUNNER_VIEW_PORT" > .env
+# Include the original CSP vendor templates that exposed the dynamic-listener
+# regression, as well as the exercised compatibility fixture.
+if [[ "$theme" == hyva ]]; then
+    printf '%s\n' '{"vendorRoots":["vendor/hyva-themes/magento2-default-theme-csp"]}' > coverage.config.json
+fi
+printf 'APPLICATION_DOMAIN=%s\nAPPLICATION_PORT=%s\nAPPLICATION_HTTPS_PORT=%s\nRUNNER_VIEW_PORT=%s\n' \
+    "$APPLICATION_DOMAIN" "$APPLICATION_PORT" "$APPLICATION_HTTPS_PORT" "$RUNNER_VIEW_PORT" > .env
 # Isolate the PHP image tag too; the runner already uses the Compose project name.
 sed 's|^    image: magelens-php:.*|    image: ${COMPOSE_PROJECT_NAME}-php:e2e|' compose.yaml > compose.yaml.tmp
 mv compose.yaml.tmp compose.yaml
@@ -113,7 +118,12 @@ if [[ -n "$auth_mount" ]]; then
 fi
 
 (
-    ./install.sh --container-only "${install_options[@]}" "$APPLICATION_DOMAIN"
+    unset COMPOSE_PROJECT_NAME
+    ./install.sh --project-name "$project" --container-only "${install_options[@]}" "$APPLICATION_DOMAIN"
+    [[ "$(cat .runtime/compose-project-name)" == "$project" ]]
+    grep -qxF "COMPOSE_PROJECT_NAME=$project" .env
+    database=$(./bin/application-compose ps -q db)
+    [[ "$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$database")" == "$project" ]]
     ./bin/runner node tests/verify-installation.cjs "$theme" "$runner" "$platform"
     bash tests/runner-container.sh "$(./bin/application-compose images -q runner)"
     # Verify HTTPS routing through nginx, including the read-only viewer redirect.

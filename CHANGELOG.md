@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.5.0 - 2026-10-27
+
+- Choose an isolated Docker project during installation with `--project-name NAME`. The saved name is used by installation, coverage and service commands; existing installations reject name changes that would select different application data.
+- Measure Hyvä Alpine listeners with PHP-generated event names, including gallery and price updates, at their original PHTML lines.
+- Preserve modifier-only listeners such as `@submit.prevent` without unsupported-directive warnings or invented expression coverage.
+
+After updating, rerun `./install.sh` with your platform, theme and runner flags, then `./bin/run-coverage` to regenerate coverage reports. Keep the existing Docker project name when reusing application data.
+
 ## 1.4.2 - 2026-10-23
 
 - Update both Cypress and Playwright runners to Node.js 24.22.1, including the October security fixes for Brotli, TLS and DNS.

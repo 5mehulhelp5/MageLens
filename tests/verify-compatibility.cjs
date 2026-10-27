@@ -19,6 +19,14 @@ if (theme.startsWith('hyva')) {
     assert.ok(entry.statements.some(statement => statement.syntax === 'alpine:model' && statement.hits > 0));
     const unused = entry.statements.find(statement => statement.binding === '@click' && entry.source.split('\n')[statement.start.line - 1].includes('probe-unused'));
     assert.equal(unused.hits, 0, 'Unclicked Alpine events must stay uncovered');
+    assert.deepEqual(entry.unsupportedDirectives || [], []);
+    assert.ok(!entry.statements.some(statement => statement.binding === '@submit.prevent'));
+    for (const prefix of ['@update-gallery-', '@update-prices-', '@unused-', '@missing-']) {
+        const statement = entry.statements.find(statement => statement.binding.startsWith(prefix));
+        assert.ok(statement?.binding.endsWith('?>.window'), `Incomplete event name: ${prefix}`);
+        assert.ok(entry.source.split('\n')[statement.start.line - 1].includes(statement.binding), 'Event must map to its original PHTML line');
+        assert.equal(statement.hits > 0, prefix.startsWith('@update-'), `Incorrect event execution: ${prefix}`);
+    }
 }
 const javascript = read('coverage/js/coverage-final.json');
 assert.ok(Object.keys(javascript).every(file => file.endsWith('.js')), 'Only whole .js files belong in JavaScript coverage');
@@ -43,6 +51,13 @@ assert.ok(childReference.targets.some(target => target.id === child.id));
 console.log('Verified PHP-rendered child source links and child counters without parent duplication.');
 
 if (theme === 'hyva') {
+    for (const suffix of ['Magento_Catalog/templates/product/list/image.phtml', 'Magento_Catalog/templates/product/price/amount/default.phtml', 'Magento_OrderCancellationUi/templates/cancel-order-modal.phtml']) {
+        const vendor = templates.templates.find(entry => entry.path === `vendor/hyva-themes/magento2-default-theme-csp/${suffix}`);
+        assert.ok(vendor, `Missing original Hyvä template: ${suffix}`);
+        assert.deepEqual(vendor.unsupportedDirectives || [], [], `Unsupported Hyvä directives: ${suffix}`);
+        if (suffix.includes('cancel-order-modal')) assert.ok(!vendor.statements.some(statement => statement.binding === '@submit.prevent'));
+        else assert.ok(vendor.statements.some(statement => /^@update-(gallery|prices)-<\?=/.test(statement.binding) && statement.binding.endsWith('?>.window')));
+    }
     const proof = read('coverage/csp-proof.json');
     assert.equal(proof.theme, 'Hyva/default-csp');
     assert.equal(proof.evalBlocked, true);

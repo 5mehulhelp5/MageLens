@@ -18,6 +18,7 @@
 !/bin/application-domain
 !/bin/badges.cjs
 !/bin/common
+!/bin/compose-project
 !/bin/dependencies
 !/bin/expose-tools
 !/bin/finalize.cjs

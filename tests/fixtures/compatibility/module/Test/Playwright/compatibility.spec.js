@@ -23,6 +23,17 @@ test('collects real PHP, JavaScript and template execution', async ({page, exter
     await expect(page.locator('[data-cy="probe-saved"]')).toHaveText('Saved coverage');
     await expect(page.locator('[data-cy="probe-item"]')).toHaveCount(2);
     await expect(page.locator('[data-cy="probe-never"]')).toHaveCount(0);
+    if (process.env.MAGELENS_THEME.startsWith('hyva')) {
+        expect(await page.evaluate(() => {
+            window.dispatchEvent(new CustomEvent('update-gallery-42', {detail: 'gallery-updated'}));
+            window.dispatchEvent(new CustomEvent('update-prices-42', {detail: 'price-updated'}));
+            const event = new Event('submit', {bubbles: true, cancelable: true});
+            document.querySelector('[data-cy="probe-prevented"]').dispatchEvent(event);
+            return event.defaultPrevented;
+        })).toBe(true);
+        await expect(page.locator('[data-cy="probe-image"]')).toHaveText('gallery-updated');
+        await expect(page.locator('[data-cy="probe-price"]')).toHaveText('price-updated');
+    }
     await page.goto('/customer/account/login/');
     await expect(page.locator('#email')).toBeVisible();
 });

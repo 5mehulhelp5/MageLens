@@ -14,7 +14,7 @@ const browserVersions = {
     ISTANBUL_LIB_REPORT_VERSION: '3.0.1',
     ISTANBUL_REPORTS_VERSION: '3.2.0',
     PLAYWRIGHT_VERSION: '1.64.1',
-    CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.5.0',
+    CYPRESS_VERSION: '16.2.0', TEMPLATE_COVERAGE_VERSION: '1.5.1',
     CYPRESS_CODE_COVERAGE_VERSION: '4.1.0', ISTANBUL_LIB_COVERAGE_VERSION: '3.2.3',
     ISTANBUL_LIB_INSTRUMENT_VERSION: '6.0.4', NYC_VERSION: '18.0.1'
 };
@@ -205,7 +205,7 @@ for (const [theme, runner] of [['luma', 'cypress'], ['hyva', 'cypress'], ['hyva-
 for (const containerOnly of [false, true]) {
 test(`installer selects ${platform}/${theme}/${runner} with ${containerOnly ? 'container-only' : 'host'} HTTPS`, t => {
     const directory = workspace(t);
-    for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/dependencies', 'bin/build-php-image', 'bin/expose-tools', 'bin/application-domain']) {
+    for (const file of ['install.sh', 'bin/install', 'bin/common', 'bin/compose-project', 'bin/dependencies', 'bin/build-php-image', 'bin/expose-tools', 'bin/application-domain']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(directory, file));
     }
@@ -234,20 +234,25 @@ fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({command: require('node
     platform: process.env.MAGELENS_PLATFORM, platformVersion: process.env.MAGELENS_PLATFORM_VERSION,
     cypress: process.env.CYPRESS_VERSION, templates: process.env.TEMPLATE_COVERAGE_VERSION,
     browserVersions: Object.fromEntries(${JSON.stringify(Object.keys(browserVersions))}.map(key => [key, process.env[key]])),
+    project: process.env.COMPOSE_PROJECT_NAME,
     theme: process.env.MAGELENS_THEME, runner: process.env.MAGELENS_RUNNER, php: process.env.MAGELENS_PHP_IMAGE}) + '\\n');
 if (args.includes('version')) console.log('2.24.4');
 if (args.includes('--print')) console.log('https://shop.magelens.test/');
 if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:6080/');
 `;
     for (const command of ['docker', 'git', 'sudo']) fs.writeFileSync(path.join(commands, command), script, {mode: 0o755});
-    execFileSync('bash', ['install.sh', ...(platform === 'mageos' ? ['--mageos'] : []), ...(theme.startsWith('hyva') ? ['--hyva'] : []), ...(theme === 'hyva-legacy' ? ['--nocsp'] : []), ...(runner === 'playwright' ? ['--playwright'] : []), ...(containerOnly ? ['--container-only'] : []), 'shop.magelens.test'],
-        {cwd: directory, env: {...process.env, PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
+    const project = containerOnly ? `client-${platform}-${theme}-${runner}` : 'magelens';
+    execFileSync('bash', ['install.sh', ...(platform === 'mageos' ? ['--mageos'] : []), ...(theme.startsWith('hyva') ? ['--hyva'] : []), ...(theme === 'hyva-legacy' ? ['--nocsp'] : []), ...(runner === 'playwright' ? ['--playwright'] : []), ...(containerOnly ? ['--container-only', '--project-name', project] : []), 'shop.magelens.test'],
+        {cwd: directory, env: {...process.env, COMPOSE_PROJECT_NAME: '', PATH: `${commands}:${process.env.PATH}`}, stdio: 'pipe'});
     const calls = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.ok(calls.filter(call => call.command === 'docker' && call.args[0] === 'compose' && !call.args.includes('version')).every(call => call.project === project));
+    assert.equal(fs.readFileSync(path.join(directory, '.runtime/compose-project-name'), 'utf8'), project + '\n');
+    assert.match(fs.readFileSync(path.join(directory, '.env'), 'utf8'), new RegExp(`^COMPOSE_PROJECT_NAME=${project}$`, 'm'));
     assert.ok(calls.some(call => call.command === 'git' && call.args.includes('refs/tags/54.0.0')));
     const sync = calls.find(call => call.args.includes('bin/sync-dependencies.cjs'));
     assert.ok(sync.args.includes(runner === 'cypress' ? 'cypress/base:24.16.0' : configured('PLAYWRIGHT_RUNNER_IMAGE')), 'Bootstrap must use the selected runner base');
     assert.equal(sync.cypress, '16.2.0');
-    assert.equal(sync.templates, '1.5.0');
+    assert.equal(sync.templates, '1.5.1');
     assert.deepEqual(sync.browserVersions, browserVersions);
     for (const key of Object.keys(browserVersions)) assert.ok(sync.args.includes(key), `Container must receive ${key}`);
     const baseBuild = calls.find(call => call.command === 'docker' && call.args[0] === 'build');
@@ -319,7 +324,7 @@ if (args.includes('--print-viewer')) console.log('https://shop.magelens.test:608
 test('Compose inherits upstream services and uses the rebuilt PHP base with the selected patch', t => {
     if (spawnSync('docker', ['compose', 'version'], {stdio: 'ignore'}).status !== 0) return t.skip('Docker Compose CLI unavailable');
     const directory = workspace(t);
-    for (const file of ['compose.yaml', 'dependencies.yaml', 'bin/common', 'bin/dependencies', 'bin/application-compose']) {
+    for (const file of ['compose.yaml', 'dependencies.yaml', 'bin/common', 'bin/compose-project', 'bin/dependencies', 'bin/application-compose']) {
         fs.mkdirSync(path.dirname(path.join(directory, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(directory, file));
     }

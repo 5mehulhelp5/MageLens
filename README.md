@@ -219,7 +219,11 @@ Use `./bin/run-coverage` for tests and reports, and `./bin/runner COMMAND` for c
 
 Installation also makes Mark Shust's Magento tools available in `bin/`. Commands such as `bin/magento`, `bin/composer`, `bin/node`, and `bin/npm` operate on the Magento application in `src/`; use `./bin/runner node` or `./bin/runner npm` for the test workspace. If you already have npm on the host, `npm run coverage` is an optional alias for `./bin/run-coverage`; the older `npm run cy:coverage` alias remains supported with either runner.
 
-The default Docker project name is `magelens`. To run multiple copies, set a unique `COMPOSE_PROJECT_NAME`, `APPLICATION_DOMAIN`, and host ports in each `.env` before installing. Keep the project name unchanged when reusing its database volumes.
+The default Docker project name is `magelens`. To name a new installation, run `./install.sh --project-name client-shop client-shop.test`, adding your platform, theme and runner flags as needed. Names must start with a lowercase letter or digit and contain only lowercase letters, digits, hyphens or underscores.
+
+The installer selects the name from `--project-name`, then a nonempty `COMPOSE_PROJECT_NAME` environment variable, then the saved `.env` value, then `magelens`. It saves the selection in `.env` for installation reruns, coverage, runner and service commands. Existing installations reject a conflicting name; unset conflicting environment overrides and keep the saved name to reuse the same database volumes. Use a separate directory for another project.
+
+For multiple copies, choose a different project name and domain for each and set non-conflicting `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT` and `RUNNER_VIEW_PORT` values in each `.env` before installing. Project naming does not change the domain or ports. Stopping or removing one project's services and volumes leaves the other projects running.
 
 Rerun `./install.sh` with your platform, theme and runner flags to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
 
