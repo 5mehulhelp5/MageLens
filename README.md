@@ -29,7 +29,7 @@ Read [Real-world E2E coverage for hundreds or thousands of tests](docs/parallel-
 Run this inside the empty directory you want to use for MageLens:
 
 ```bash
-wget -qO- https://github.com/VitaliyBoyko/MageLens/archive/refs/tags/v1.5.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
+wget -qO- https://github.com/MageLens/MageLens/archive/refs/tags/v1.5.0.tar.gz | tar -xz --strip-components=1 && ./install.sh
 ```
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
@@ -275,7 +275,7 @@ No. MageLens installs a local developer environment with coverage instrumentatio
 - [PCOV fork](https://github.com/VitaliyBoyko/pcov): PHP line coverage with native export and manifest reuse, selected in `dependencies.yaml`.
 - [Magento 2 and Adobe Commerce PhpStorm plugin](https://github.com/VitaliyBoyko/magento2-phpstorm-plugin): code navigation, inspections, generators and Magento MCP tools for working with the source.
 
-For reproducible setup or reporting problems, [open an issue](https://github.com/VitaliyBoyko/MageLens/issues) with the MageLens version, platform, theme, runner and relevant diagnostics. See [releases](https://github.com/VitaliyBoyko/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
+For reproducible setup or reporting problems, [open an issue](https://github.com/MageLens/MageLens/issues) with the MageLens version, platform, theme, runner and relevant diagnostics. See [releases](https://github.com/MageLens/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
 
 ## Repository navigation for AI agents
 
