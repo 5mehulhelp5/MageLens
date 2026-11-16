@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Private Entrepreneur Vitalii Boiko
+Copyright (c)  MageLens
 SPDX-License-Identifier: Elastic-2.0
 License: see LICENSE in the repository root.
 -->
@@ -21,7 +21,6 @@ Run the installer, run the tests, and open one report to see which parts of your
 The included [blog module](src/app/code/Application/Blog/README.md) provides an optional demonstration application with equivalent Cypress and Playwright suites for Luma and Hyvä. The badges are updated after each successful coverage run.
 
 <!-- coverage-badges:start -->
-Run `./bin/run-coverage` to generate coverage reports and badges for your project.
 <!-- coverage-badges:end -->
 
 ## Why MageLens?
@@ -44,7 +43,7 @@ To install a specific release, prefix the command with `MAGELENS_VERSION=v1.8.2`
 
 If you have already cloned or downloaded MageLens, run `./install.sh` from its project directory.
 
-Installation pulls compatible, digest-pinned Cypress or Playwright and PHP/PCOV images from GHCR when the checkout matches the latest published release. PHP applies a small local UID/GID layer. Use `./install.sh --build-from-source` (with your platform, theme and runner flags) to build everything locally. Unpublished or modified image inputs and unsupported architectures fall back to source builds; registry or provenance failures stop installation. Linux amd64 and arm64 images are published, including native images for Apple Silicon. GHCR retains the latest successful release; older releases build from source. Application packages, credentials and databases remain local. Custom npm dependencies are installed when the project lock differs from the bundled dependencies.
+Installation pulls compatible, digest-pinned Cypress or Playwright and PHP/PCOV images from GHCR when the checkout matches a published release. PHP applies a small local UID/GID layer. Use `./install.sh --build-from-source` (with your platform, theme and runner flags) to build everything locally. Unpublished or modified image inputs and unsupported architectures fall back to source builds; registry or provenance failures stop installation. Linux amd64 and arm64 images are published, including native images for Apple Silicon. GHCR retains images referenced by published releases; checkouts without published images or with modified inputs build from source. Application packages, credentials and databases remain local. Custom npm dependencies are installed when the project lock differs from the bundled dependencies.
 
 The command above installs Magento Open Source with Luma and Cypress. Add `--mageos` to install Mage-OS instead. On Linux and Apple Silicon macOS, both platforms are tested with every storefront and browser runner combination:
 
@@ -97,7 +96,7 @@ With the default domain and ports:
 | Magento Admin | https://magelens.test/admin/ |
 | Demonstration blog | https://magelens.test/blog/ |
 | Live test runner (Cypress or Playwright) | https://magelens.test:6080/ |
-| Combined coverage report, after a successful test run | `coverage/index.html` on your machine |
+| Combined coverage report, after a successful test run | https://magelens.test/media/coverage/index.html |
 
 Fresh installations create the Admin account `application` / `ApplicationOnly123456!`. Demo features and usage are documented in the [blog README](src/app/code/Application/Blog/README.md).
 
@@ -128,7 +127,7 @@ By default, the installer adds the domain to your hosts file and uses Mark Shust
 
 PHP coverage excludes emitted HTML and inline JavaScript. Template warnings identify unsupported directives, scripts or PHP-generated output. When a warning is present, the template percentage covers only the parts MageLens can measure.
 
-Open `coverage/index.html` directly in your browser for the combined view. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
+After a successful run, open the URL printed by `./bin/run-coverage` for the combined view. It uses your configured Magento storefront URL and serves the complete report through `pub/media/coverage`. You can also open `coverage/index.html` directly on your machine. Each successful full run also refreshes the four SVG badges in `coverage/badges/` and the managed badge section in this README. Reports are generated locally and are ignored by Git; the badges can be committed. Archive `coverage/` to share the browsable reports.
 
 Coverage includes PHP executable lines, whole JavaScript files, and HTML/PHTML templates with their bindings and inline scripts under `src/app/code/`, plus selected storefront and Admin themes and their local parents under `src/app/design/`. Composer packages can be included explicitly using `vendorRoots` in [coverage.config.json](coverage.config.json). Directories named `Test`, `Setup`, `node_modules` or `tailwind`, browser specs and support directories are excluded. The theme scope is resolved from Magento on each run; unrelated inactive themes and vendor packages remain excluded. Unexecuted eligible files remain uncovered. JavaScript badges measure statements in whole `.js` files, with separate application/library reports. Inline scripts belong to template coverage, which also lists unsupported and PHP-generated script fragments. See [JavaScript coverage configuration](docs/coverage.md#javascript-coverage).
 
@@ -160,6 +159,7 @@ This is the single place to choose the main dependency versions:
 | Mage-OS | `MAGEOS_VERSION` |
 | Mark Shust Docker Magento PHP recipe and service images | `MARKSHUST_DOCKER_MAGENTO_VERSION` |
 | Official PHP base image | `PHP_IMAGE` |
+| Composer in the PHP image | `COMPOSER_VERSION` |
 | [PCOV fork](https://github.com/VitaliyBoyko/pcov) / PIE installer | `PCOV_VERSION` / `PIE_VERSION` |
 | Cypress | `CYPRESS_VERSION` |
 | Playwright | `PLAYWRIGHT_VERSION` |
@@ -240,7 +240,7 @@ The default Docker project name is `magelens`. To name a new installation, run `
 
 The installer selects the name from `--project-name`, then a nonempty `COMPOSE_PROJECT_NAME` environment variable, then the saved `.env` value, then `magelens`. It saves the selection in `.env` for installation reruns, coverage, runner and service commands. Existing installations reject a conflicting name; unset conflicting environment overrides and keep the saved name to reuse the same database volumes. Use a separate directory for another project.
 
-For multiple copies, choose a different project name and domain for each and set non-conflicting `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT` and `RUNNER_VIEW_PORT` values in each `.env` before installing. Project naming does not change the domain or ports. Stopping or removing one project's services and volumes leaves the other projects running.
+For multiple copies, choose a different project name and domain for each and set non-conflicting `APPLICATION_PORT`, `APPLICATION_HTTPS_PORT` and `RUNNER_VIEW_PORT` values in each `.env` before installing. Commands reject application containers belonging to another checkout with the same project name; run commands from the owning checkout. Project naming does not change the domain or ports. Stopping or removing one project's services and volumes leaves the other projects running.
 
 Rerun `./install.sh` with your platform, theme and runner flags to resume interrupted setup or rebuild after Dockerfile changes. Existing database contents, configuration, and media are preserved.
 
@@ -297,6 +297,8 @@ Thank you to [Mark Shust](https://github.com/markshust) for creating and maintai
 For reproducible setup or reporting problems, [open an issue](https://github.com/MageLens/MageLens/issues) with the MageLens version, platform, theme, runner and relevant diagnostics. See [releases](https://github.com/MageLens/MageLens/releases) and the [changelog](CHANGELOG.md) for version changes.
 
 ## License
+
+MageLens TM is owned by Vitalii Boiko; copyright notices naming MageLens refer to Vitalii Boiko.
 
 MageLens is source-available under the [Elastic License 2.0](LICENSE). Commercial use, modification and redistribution are allowed under its terms, including agencies using MageLens to check clients' projects and deliver reports.
 

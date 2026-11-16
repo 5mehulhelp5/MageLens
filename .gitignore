@@ -1,8 +1,9 @@
-# SPDX-FileCopyrightText: Private Entrepreneur Vitalii Boiko
+# Copyright (c)  MageLens
 # SPDX-License-Identifier: Elastic-2.0
 # License: see LICENSE in the repository root.
 
 /.runtime/
+/.cleanup-tools/
 # Track only application sources inside the otherwise generated Magento tree.
 /src/*
 !/src/app/
@@ -51,4 +52,5 @@
 /cypress/screenshots/
 /cypress/videos/
 /.idea/
+.DS_Store
 *.log
